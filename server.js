@@ -89,8 +89,9 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
-    const { data: user, error } = await supabase.from('users').select('*').eq('email', email.toLowerCase().trim()).eq('active', true).single();
+    const { data: users, error } = await supabase.from('users').select('*').eq('email', email.toLowerCase().trim()).eq('active', true).limit(1);
     if (error) { console.error('Login DB error:', error); return res.status(500).json({ error: 'Database error: ' + error.message }); }
+    const user = users?.[0];
     if (!user || !bcrypt.compareSync(password, user.password_hash))
       return res.status(401).json({ error: 'Invalid email or password' });
     const token = jwt.sign({ id: user.id, name: user.name, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '12h' });
