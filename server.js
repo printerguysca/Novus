@@ -987,7 +987,7 @@ if (process.env.VERCEL) {
 } else {
   seed().then(() => {
     app.listen(PORT, () => {
-      console.log(`\nSoho Blinds WMS running at http://localhost:${PORT}\n`);
+      console.log(`\nNovus running at http://localhost:${PORT}\n`);
       console.log('Default logins:');
       console.log('  owner@soho.ca     / owner123');
       console.log('  admin@soho.ca     / admin123');
@@ -998,6 +998,6 @@ if (process.env.VERCEL) {
     });
   }).catch(err => {
     console.error('Seed error:', err.message);
-    app.listen(PORT, () => console.log(`\nSoho Blinds WMS running at http://localhost:${PORT}\n`));
+    app.listen(PORT, () => console.log(`\nNovus running at http://localhost:${PORT}\n`));
   });
 }

@@ -1,7 +1,7 @@
 {
-  "name": "soho-wms",
+  "name": "novus",
   "version": "1.0.0",
-  "description": "Soho Blinds Warehouse Management System",
+  "description": "Novus - Soho Blinds Management System",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
