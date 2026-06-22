@@ -85,6 +85,12 @@ const warehouseRoles = requireRole('owner','admin','warehouse');
 
 // ─── AUTH ROUTES ─────────────────────────────────────────────────────────────
 
+// Force seed — visit /api/seed once to populate users
+app.get('/api/seed', async (req, res) => {
+  try { await seed(); res.json({ ok: true, message: 'Seed complete' }); }
+  catch(e) { res.json({ ok: false, error: e.message }); }
+});
+
 // Debug login — visit /api/debug-login in browser
 app.get('/api/debug-login', async (req, res) => {
   const email = 'owner@soho.ca';
