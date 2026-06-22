@@ -958,21 +958,27 @@ app.get('/api/reports', requireAuth, requireRole('owner'), async (req, res) => {
 // ─── SEED ────────────────────────────────────────────────────────────────────
 
 async function seed() {
-  const { count, error: countErr } = await supabase.from('users').select('*', { count: 'exact', head: true });
+  const { error: countErr } = await supabase.from('users').select('id', { count: 'exact', head: true });
   if (countErr) { console.error('Seed check failed — did you run schema.sql in Supabase SQL Editor?', countErr.message); return; }
-  if (count > 0) { console.log('Database already seeded (' + count + ' users found)'); return; }
 
+  // Always upsert demo users so bcrypt hashes are generated fresh on this runtime.
+  // This prevents hash mismatch when the DB was seeded on a different runtime (e.g. local vs Vercel).
   const hash = p => bcrypt.hashSync(p, 10);
-  const users = [
-    { name:'Owner Account', email:'owner@soho.ca', password_hash:hash('owner123'), role:'owner' },
-    { name:'Office Admin', email:'admin@soho.ca', password_hash:hash('admin123'), role:'admin' },
-    { name:'Sales Rep', email:'sales@soho.ca', password_hash:hash('sales123'), role:'sales' },
-    { name:'Warehouse Team', email:'warehouse@soho.ca', password_hash:hash('warehouse123'), role:'warehouse' },
-    { name:'Installer', email:'installer@soho.ca', password_hash:hash('installer123'), role:'installer' },
-    { name:'Factory Floor', email:'factory@soho.ca', password_hash:hash('factory123'), role:'factory' },
+  const demoUsers = [
+    { name:'Owner Account', email:'owner@soho.ca', password_hash:hash('owner123'), role:'owner', active:true },
+    { name:'Office Admin', email:'admin@soho.ca', password_hash:hash('admin123'), role:'admin', active:true },
+    { name:'Sales Rep', email:'sales@soho.ca', password_hash:hash('sales123'), role:'sales', active:true },
+    { name:'Warehouse Team', email:'warehouse@soho.ca', password_hash:hash('warehouse123'), role:'warehouse', active:true },
+    { name:'Installer', email:'installer@soho.ca', password_hash:hash('installer123'), role:'installer', active:true },
+    { name:'Factory Floor', email:'factory@soho.ca', password_hash:hash('factory123'), role:'factory', active:true },
   ];
-  const { error: ue } = await supabase.from('users').insert(users);
-  if (ue) { console.error('Failed to seed users:', ue.message); return; }
+  const { error: ue } = await supabase.from('users').upsert(demoUsers, { onConflict: 'email' });
+  if (ue) { console.error('Failed to upsert demo users:', ue.message); return; }
+  console.log('Demo users synced with fresh hashes');
+
+  // Only seed reference data if it doesn't exist yet
+  const { count: profileCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+  if (profileCount > 0) { console.log('Reference data already exists, skipping'); return; }
 
   const profiles = [
     { code:'A', blind_type:'zebra', cassette_ded:-0.375, roller_ded:-1.0625, bottom_rail_ded:-1.0625, bottom_core_ded:-1.25, description:'Flat Zebra + Regular Clutch + Wands + S. Cord' },
