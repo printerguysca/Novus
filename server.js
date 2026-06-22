@@ -85,6 +85,22 @@ const warehouseRoles = requireRole('owner','admin','warehouse');
 
 // ─── AUTH ROUTES ─────────────────────────────────────────────────────────────
 
+// Debug login — visit /api/debug-login in browser
+app.get('/api/debug-login', async (req, res) => {
+  const email = 'owner@soho.ca';
+  const pass = 'owner123';
+  const { data: users, error } = await supabase.from('users').select('*').eq('email', email).limit(5);
+  if (error) return res.json({ error: error.message });
+  if (!users || users.length === 0) return res.json({ error: 'No user found', email });
+  const results = users.map(u => ({
+    id: u.id, email: u.email, active: u.active,
+    hash_preview: u.password_hash?.substring(0, 20) + '...',
+    bcrypt_match: bcrypt.compareSync(pass, u.password_hash),
+    hash_length: u.password_hash?.length
+  }));
+  res.json({ user_count: users.length, results });
+});
+
 // One-time password reset — visit /api/fix-passwords in browser, then remove this
 app.get('/api/fix-passwords', async (req, res) => {
   const accounts = [
