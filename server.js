@@ -6,11 +6,11 @@ const path = require('path');
 const PDFDocument = require('pdfkit');
 
 const app = express();
-const PORT = 3000;
-const JWT_SECRET = 'soho-blinds-secret-2026';
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'soho-blinds-secret-2026';
 
-const SUPABASE_URL = 'https://tntmgwukdzzeknlfmotz.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRudG1nd3VrZHp6ZWtubGZtb3R6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU3MTI1MCwiZXhwIjoyMDk2MTQ3MjUwfQ.593no0oW97qNYCNgGtFNdnIhoSEVsaTke7PYc9gepvk';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://tntmgwukdzzeknlfmotz.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRudG1nd3VrZHp6ZWtubGZtb3R6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU3MTI1MCwiZXhwIjoyMDk2MTQ3MjUwfQ.593no0oW97qNYCNgGtFNdnIhoSEVsaTke7PYc9gepvk';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
