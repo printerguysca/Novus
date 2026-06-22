@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Soho Blinds WMS</title>
+<style>
+:root{
+  --brand:#1e293b;--brand-h:#0f172a;--brand-light:#f1f5f9;
+  --accent:#2563eb;--accent-bg:#eff6ff;
+  --green:#16a34a;--green-bg:#f0fdf4;--green-text:#15803d;
+  --red:#dc2626;--red-bg:#fef2f2;--red-text:#b91c1c;
+  --amber:#d97706;--amber-bg:#fffbeb;--amber-text:#b45309;
+  --blue:#2563eb;--blue-bg:#eff6ff;--blue-text:#1d4ed8;
+  --purple:#7c3aed;--purple-bg:#f5f3ff;--purple-text:#6d28d9;
+  --teal:#0d9488;--teal-bg:#f0fdfa;--teal-text:#0f766e;
+  --orange:#ea580c;--orange-bg:#fff7ed;--orange-text:#c2410c;
+  --bg:#f8fafc;--white:#fff;
+  --text:#0f172a;--text2:#475569;--text3:#94a3b8;
+  --border:#e2e8f0;--border2:#cbd5e1;
+  --r:8px;--rl:10px;
+  --sh:0 1px 2px rgba(0,0,0,.06);
+  --shm:0 2px 6px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shl:0 8px 20px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.04);
+  --sw:220px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+#app{display:flex;height:100vh;overflow:hidden;}
+#sidebar{width:var(--sw);min-width:var(--sw);background:var(--brand);display:flex;flex-direction:column;height:100vh;transition:transform .25s;z-index:50;}
+#slogo{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.08);}
+.lw{display:flex;align-items:center;gap:10px;}
+.ls{width:30px;height:30px;background:rgba(255,255,255,.1);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ls svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2;}
+.ln{color:#fff;font-size:14px;font-weight:700;}.lsb{color:rgba(255,255,255,.35);font-size:10px;margin-top:1px;}
+#snav{flex:1;padding:10px 8px;overflow-y:auto;}
+.nl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.28);padding:12px 8px 4px;display:block;}
+.ni{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;cursor:pointer;color:rgba(255,255,255,.55);font-size:13px;font-weight:500;transition:all .12s;margin-bottom:1px;text-decoration:none;}
+.ni:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.9);}
+.ni.active{background:rgba(255,255,255,.12);color:#fff;}
+.ni svg{width:14px;height:14px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;opacity:.7;}
+.ni.active svg{opacity:1;}
+#sfoot{padding:12px 14px;border-top:1px solid rgba(255,255,255,.08);}
+.fu{display:flex;align-items:center;gap:9px;}
+.fav{width:28px;height:28px;background:rgba(255,255,255,.14);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;flex-shrink:0;}
+.fn{color:rgba(255,255,255,.82);font-size:12px;font-weight:600;}
+.fr{color:rgba(255,255,255,.3);font-size:10px;text-transform:capitalize;}
+.bso{margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.38);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;transition:all .12s;}
+.bso:hover{border-color:rgba(255,255,255,.45);color:rgba(255,255,255,.8);}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+#topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 20px;height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;}
+#mbtn{display:none;background:none;border:none;cursor:pointer;padding:4px;color:var(--text2);}
+#mbtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;}
+#ptitle{font-size:15px;font-weight:700;}
+#tactions{display:flex;gap:7px;align-items:center;flex-shrink:0;}
+#content{flex:1;overflow-y:auto;padding:20px;}
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:49;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .12s;white-space:nowrap;line-height:1;}
+.bp{background:var(--brand);color:#fff;}.bp:hover{background:var(--brand-h);}
+.bs{background:var(--green);color:#fff;}.bs:hover{background:#15803d;}
+.bd{background:var(--red);color:#fff;}
+.bsec{background:var(--white);color:var(--text);border:1px solid var(--border2);}.bsec:hover{border-color:var(--text2);}
+.bg{background:transparent;color:var(--text2);}.bg:hover{background:var(--bg);}
+.bsm{padding:5px 10px;font-size:12px;}
+.bxs{padding:3px 8px;font-size:11px;border-radius:5px;}
+.card{background:var(--white);border-radius:var(--rl);box-shadow:var(--shm);border:1px solid var(--border);margin-bottom:16px;overflow:hidden;}
+.ch{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.ch h2{font-size:13px;font-weight:700;}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.sc{background:var(--white);border-radius:var(--rl);padding:16px 18px;box-shadow:var(--shm);border:1px solid var(--border);}
+.slb{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.sv{font-size:26px;font-weight:800;color:var(--text);line-height:1;}
+.ssb{font-size:11px;color:var(--text3);margin-top:4px;}
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:9px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);background:#f8fafc;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:#fafafa;}
+.mono{font-family:'SF Mono','Fira Code',monospace;font-size:12px;}
+.muted{color:var(--text2);}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap;}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.sn{background:#f1f5f9;color:#475569;}.sn .dot{background:#94a3b8;}
+.sm2{background:#fefce8;color:#854d0e;}.sm2 .dot{background:#d97706;}
+.sip{background:#f5f3ff;color:#6d28d9;}.sip .dot{background:#7c3aed;}
+.srd{background:#f0fdf4;color:#15803d;}.srd .dot{background:#16a34a;}
+.sin{background:#f1f5f9;color:#374151;}.sin .dot{background:#6b7280;}
+.bgr{background:var(--green-bg);color:var(--green-text);}
+.brd{background:var(--red-bg);color:var(--red-text);}
+.bam{background:var(--amber-bg);color:var(--amber-text);}
+.bbl{background:var(--blue-bg);color:var(--blue-text);}
+.bpu{background:var(--purple-bg);color:var(--purple-text);}
+.btl{background:var(--teal-bg);color:var(--teal-text);}
+.bor{background:var(--orange-bg);color:var(--orange-text);}
+.bgy{background:#f1f5f9;color:#475569;}
+.qd{background:#f8fafc;color:#64748b;}
+.qs{background:var(--blue-bg);color:var(--blue-text);}
+.qa{background:var(--green-bg);color:var(--green-text);}
+.qc{background:var(--purple-bg);color:var(--purple-text);}
+.tp{background:#f8fafc;color:#64748b;}
+.ti{background:var(--blue-bg);color:var(--blue-text);}
+.td2{background:var(--green-bg);color:var(--green-text);}
+.plo{background:var(--green-bg);color:var(--green-text);}
+.pme{background:var(--amber-bg);color:var(--amber-text);}
+.phi{background:var(--red-bg);color:var(--red-text);}
+.pur{background:#450a0a;color:#fca5a5;}
+.ro{background:var(--purple-bg);color:var(--purple-text);}
+.ra{background:var(--teal-bg);color:var(--teal-text);}
+.rs{background:var(--blue-bg);color:var(--blue-text);}
+.rw{background:var(--orange-bg);color:var(--orange-text);}
+.ri{background:var(--amber-bg);color:var(--amber-text);}
+.rf{background:var(--green-bg);color:var(--green-text);}
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;}
+.fg label{font-size:12px;font-weight:600;color:var(--text2);}
+.fg input,.fg select,.fg textarea{padding:8px 10px;border:1px solid var(--border2);border-radius:7px;font-size:13px;color:var(--text);background:var(--white);outline:none;transition:border .12s,box-shadow .12s;font-family:inherit;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.fg textarea{resize:vertical;min-height:70px;}
+.fg input[type=color]{height:36px;padding:2px 4px;cursor:pointer;}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.fr4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.fss{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);padding:12px 0 7px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;}
+.md{background:var(--white);border-radius:12px;box-shadow:var(--shl);width:100%;max-height:92vh;overflow-y:auto;display:flex;flex-direction:column;border:1px solid var(--border);}
+.msm{max-width:440px;}.mmd{max-width:640px;}.mlg{max-width:860px;}
+.mh{padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1;border-radius:12px 12px 0 0;}
+.mh h3{font-size:15px;font-weight:700;}
+.mx{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center;}
+.mx:hover{background:var(--bg);}
+.mb{padding:20px;flex:1;}
+.mf{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--white);border-radius:0 0 12px 12px;}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.tab{padding:8px 14px;font-size:13px;font-weight:500;color:var(--text2);background:transparent;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+.tab:hover:not(.active){color:var(--text);}
+.swg{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;}
+.swc{border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s;background:var(--white);}
+.swc:hover{box-shadow:var(--shl);border-color:var(--border2);}
+.swt{height:72px;position:relative;}
+.swp{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.45);color:#fff;font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;}
+.swb{padding:10px;}.swn{font-size:12px;font-weight:600;margin-bottom:1px;}.swco{font-size:10px;color:var(--text3);}
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);}
+.cdh{background:var(--bg);text-align:center;font-size:11px;font-weight:600;color:var(--text2);padding:7px 0;}
+.cd{min-height:88px;background:var(--white);padding:6px;cursor:pointer;}
+.cd:hover{background:#fafafa;}
+.ct{background:#eff6ff !important;}.ct .cdn{color:var(--accent);font-weight:700;}
+.com{background:var(--bg);opacity:.6;}
+.cdn{font-size:11px;color:var(--text2);margin-bottom:2px;}
+.cev{font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ei{background:#dcfce7;color:#166534;}.em2{background:#dbeafe;color:#1e40af;}.eme{background:#ede9fe;color:#5b21b6;}.eot{background:#f1f5f9;color:#374151;}
+.lp{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:600;}
+.stb{height:4px;border-radius:2px;background:var(--border);overflow:hidden;}
+.stbf{height:100%;border-radius:2px;}
+#toasts{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:6px;}
+.toast{background:var(--brand);color:#fff;padding:11px 16px;border-radius:8px;font-size:13px;font-weight:500;animation:tin .15s ease;box-shadow:var(--shl);}
+.te{background:#b91c1c;}.tw2{background:#92400e;}
+@keyframes tin{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+.empty{text-align:center;padding:44px 20px;}
+.et{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:3px;}
+.esb{font-size:12px;color:var(--text3);}
+.ig{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.ibl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:3px;}
+.ibv{font-size:13px;font-weight:600;}.ibsb{font-size:11px;color:var(--text2);margin-top:1px;}
+.cprev{border-radius:7px;padding:10px;text-align:center;}
+.cprev .cl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:inherit;opacity:.7;margin-bottom:3px;}
+.cprev .cv{font-size:16px;font-weight:800;font-family:'SF Mono',monospace;}
+@media(max-width:768px){
+  #sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);}
+  #sidebar.open{transform:none;}.ov.show{display:block;}#mbtn{display:block;}
+  .sg{grid-template-columns:1fr 1fr;}.fr2,.fr3,.fr4{grid-template-columns:1fr;}
+  .ig{grid-template-columns:1fr 1fr;}
+  .md{border-radius:12px 12px 0 0;margin-top:auto;}
+  .mo{align-items:flex-end;padding:0;}.mlg,.mmd{max-width:100%;}
+  .qb-adj{grid-template-columns:1fr !important;}
+  .qb-actions{flex-direction:column !important;}
+  .qb-actions .btn{width:100%;justify-content:center;}
+  .qb-table-wrap{display:none !important;}
+  .qb-cards{display:block !important;}
+  .qb-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;position:relative;}
+  .qb-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+  .qb-card-head strong{font-size:14px;color:var(--text);}
+  .qb-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .qb-card-field{display:flex;flex-direction:column;gap:2px;}
+  .qb-card-field.full{grid-column:1/-1;}
+  .qb-card-field label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px;}
+  .qb-card-field input,.qb-card-field select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--card);}
+  .qb-card-total{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .qb-card-total span{font-size:11px;color:var(--text3);}
+  .qb-card-total strong{font-size:16px;color:var(--accent);}
+  .qb-card-actions{display:flex;gap:6px;}
+  .qb-card-actions .btn{padding:4px 10px;font-size:12px;}
+  /* Touch-friendly: prevent iOS zoom, min tap targets */
+  input,select,textarea{font-size:16px !important;}
+  .btn{min-height:44px;}
+  .fr2{gap:10px;}
+  .fg label{font-size:13px;}
+  .fg input,.fg select,.fg textarea{padding:10px !important;}
+  .fss{font-size:15px;}
+}
+.qb-cards{display:none;}
+@media(max-width:480px){.sg{grid-template-columns:1fr;}#content{padding:10px;}
+  .qb-card-grid{grid-template-columns:1fr;}
+  .card{border-radius:8px;}
+}
+@media print{#sidebar,#topbar,.btn,#toasts{display:none!important;}#main,#content{overflow:visible!important;height:auto!important;}}
+</style>
+</head>
+<body>
+<div id="app">
+<nav id="sidebar">
+  <div id="slogo"><div class="lw"><div class="ls"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/></svg></div><div><div class="ln">Soho Blinds</div><div class="lsb">WMS</div></div></div></div>
+  <div id="snav"></div>
+  <div id="sfoot"><div class="fu"><div class="fav" id="uav">?</div><div><div class="fn" id="uname">—</div><div class="fr" id="urole">—</div></div><button class="bso" onclick="logout()">Sign out</button></div></div>
+</nav>
+<div id="ov" onclick="closeSidebar()"></div>
+<div id="main">
+  <div id="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button id="mbtn" onclick="toggleSidebar()"><svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <span id="ptitle">Loading</span>
+    </div>
+    <div id="tactions"></div>
+  </div>
+  <div id="content"></div>
+</div>
+</div>
+<div id="toasts"></div>
+<div id="modal-root"></div>
+<script>
+// ── CORE ──
+const $=id=>document.getElementById(id);
+let ME=null,TOKEN=null,_fabs=[],_hw=[],_profs=[],_users=[],_cJob=null;
+let calY=new Date().getFullYear(),calM=new Date().getMonth()+1;
+const LOCS=['Warehouse','Factory','Installer'];
+const LC={Warehouse:'#2563eb',Factory:'#7c3aed',Installer:'#d97706'};
+const PDATA={A:{c:-.375,r:-1.0625,br:-1.0625,bc:-1.25},B:{c:-.375,r:-.875,br:-.875,bc:-1.0625},C:{c:-.3125,r:-.75,br:-.75,bc:-.875},D:{c:-.3125,r:-.5625,br:-.5625,bc:-.6875},E:{c:0,r:-1.125,br:-1.125,bc:0},F:{c:-.375,r:-1.0625,br:-1.0625,bc:0},G:{c:-.375,r:-.875,br:-.875,bc:0},H:{c:-.3125,r:-.75,br:-.75,bc:-.875},I:{c:-.3125,r:-.75,br:-.75,bc:-.875},J:{c:-.375,r:-1.0,br:-1.0,bc:0}};
+// Zebra/Roller price lookup — width cols x height rows (May 2026)
+const PRICE_W=[24,30,36,48,54,60,66,72,84,90,96,102,108];
+const PRICE_H=[36,42,48,54,60,66,72,78,84,90,96,102,108,114,120];
+const PRICE_TBL=[
+[329,342,356,364,378,390,403,416,430,438,451,463,477,490,503],
+[390,405,421,432,448,462,478,494,509,520,536,551,566,582,598],
+[450,468,486,500,518,535,553,571,589,603,621,638,656,674,692],
+[571,594,617,635,658,680,703,726,749,767,790,812,835,858,881],
+[632,657,682,703,728,753,778,803,829,849,875,899,924,950,975],
+[692,720,748,771,799,825,853,881,909,932,960,986,1014,1042,1070],
+[753,783,813,839,869,898,928,958,989,1014,1044,1073,1104,1134,1164],
+[813,846,878,906,939,970,1003,1036,1068,1096,1129,1160,1193,1226,1258],
+[934,972,1009,1042,1079,1116,1153,1191,1228,1261,1298,1335,1372,1410,1447],
+[995,1035,1074,1110,1150,1188,1228,1268,1308,1343,1383,1422,1462,1502,1542],
+[1055,1097,1140,1177,1220,1261,1303,1346,1388,1425,1468,1509,1551,1594,1636],
+[1116,1160,1205,1245,1290,1333,1378,1423,1468,1508,1552,1596,1641,1686,1730],
+[1176,1223,1271,1313,1360,1406,1453,1500,1548,1590,1637,1683,1730,1777,1825]
+];
+function priceLookup(wIn,wFr,hIn,hFr){
+  const w=(parseFloat(wIn)||0)+(parseFloat(wFr)||0);
+  const h=(parseFloat(hIn)||0)+(parseFloat(hFr)||0);
+  if(w<=0||h<=0)return 0;
+  // Round up to nearest bracket
+  let wi=PRICE_W.findIndex(v=>v>=w);if(wi<0)wi=PRICE_W.length-1;
+  let hi=PRICE_H.findIndex(v=>v>=h);if(hi<0)hi=PRICE_H.length-1;
+  return PRICE_TBL[wi][hi];
+}
+// ── FABRIC CATALOG (coded system) ──
+const BLIND_TYPES=['Zebra','Roller','Double Roller','Honeycomb'];
+const FABRIC_CAT=[
+// Zebra — Z1 Matte 3"
+{code:'Z1A',cat:'Zebra',series:'Z1',name:'Matte',color:'Ivory',filter:'Room Darkening',slat:'3"'},
+{code:'Z1B',cat:'Zebra',series:'Z1',name:'Matte',color:'Sand',filter:'Room Darkening',slat:'3"'},
+{code:'Z1C',cat:'Zebra',series:'Z1',name:'Matte',color:'Silver',filter:'Room Darkening',slat:'3"'},
+{code:'Z1D',cat:'Zebra',series:'Z1',name:'Matte',color:'Grey',filter:'Room Darkening',slat:'3"'},
+{code:'Z1E',cat:'Zebra',series:'Z1',name:'Matte',color:'Gold',filter:'Room Darkening',slat:'3"'},
+{code:'Z1F',cat:'Zebra',series:'Z1',name:'Matte',color:'Brown',filter:'Room Darkening',slat:'3"'},
+{code:'Z1G',cat:'Zebra',series:'Z1',name:'Matte',color:'Chocolate',filter:'Room Darkening',slat:'3"'},
+// Zebra — Z2 Mysterious 4"
+{code:'Z2A',cat:'Zebra',series:'Z2',name:'Mysterious',color:'Ivory',filter:'',slat:'4"'},
+{code:'Z2B',cat:'Zebra',series:'Z2',name:'Mysterious',color:'TBD',filter:'',slat:'4"'},
+{code:'Z2C',cat:'Zebra',series:'Z2',name:'Mysterious',color:'Sand',filter:'',slat:'4"'},
+// Zebra — Z3 Rossini 4"
+{code:'Z3A',cat:'Zebra',series:'Z3',name:'Rossini',color:'Ivory',filter:'Extreme Room Darkening',slat:'4"'},
+{code:'Z3B',cat:'Zebra',series:'Z3',name:'Rossini',color:'Beige',filter:'',slat:'4"'},
+{code:'Z3C',cat:'Zebra',series:'Z3',name:'Rossini',color:'Sand',filter:'',slat:'4"'},
+{code:'Z3D',cat:'Zebra',series:'Z3',name:'Rossini',color:'Soft Grey',filter:'',slat:'4"'},
+{code:'Z3E',cat:'Zebra',series:'Z3',name:'Rossini',color:'Charcoal',filter:'',slat:'4"'},
+{code:'Z3F',cat:'Zebra',series:'Z3',name:'Rossini',color:'Wood',filter:'',slat:'4"'},
+{code:'Z3G',cat:'Zebra',series:'Z3',name:'Rossini',color:'Coffee',filter:'',slat:'4"'},
+// Zebra — Z5 Tokyo 3 7/8"
+{code:'Z5A',cat:'Zebra',series:'Z5',name:'Tokyo',color:'Milk',filter:'Room Darkening',slat:'3 7/8"'},
+{code:'Z5B',cat:'Zebra',series:'Z5',name:'Tokyo',color:'Cream',filter:'Room Darkening',slat:'3 7/8"'},
+{code:'Z5C',cat:'Zebra',series:'Z5',name:'Tokyo',color:'Grey',filter:'Room Darkening',slat:'3 7/8"'},
+{code:'Z5D',cat:'Zebra',series:'Z5',name:'Tokyo',color:'Gold',filter:'Room Darkening',slat:'3 7/8"'},
+// Zebra — Z6 Athena
+{code:'Z6A',cat:'Zebra',series:'Z6',name:'Athena',color:'White',filter:'Light Filter',slat:'3"'},
+{code:'Z6B',cat:'Zebra',series:'Z6',name:'Athena',color:'White',filter:'Room Darkening (Blackout)',slat:'4"'},
+// Zebra — Z7 Greece 4"
+{code:'Z7A',cat:'Zebra',series:'Z7',name:'Greece',color:'Light Grey',filter:'Room Darkening',slat:'4"'},
+{code:'Z7B',cat:'Zebra',series:'Z7',name:'Greece',color:'Dark Grey',filter:'Room Darkening',slat:'4"'},
+{code:'Z7C',cat:'Zebra',series:'Z7',name:'Greece',color:'Charcoal',filter:'Room Darkening',slat:'4"'},
+// Zebra — Z8 Rome 4"
+{code:'Z8A',cat:'Zebra',series:'Z8',name:'Rome',color:'Ivory',filter:'Room Darkening',slat:'4"'},
+{code:'Z8B',cat:'Zebra',series:'Z8',name:'Rome',color:'Beige',filter:'Room Darkening',slat:'4"'},
+{code:'Z8C',cat:'Zebra',series:'Z8',name:'Rome',color:'Navy',filter:'Room Darkening',slat:'4"'},
+// Zebra — ZS Paris 4"
+{code:'ZSA',cat:'Zebra',series:'ZS',name:'Paris',color:'Ivory',filter:'Room Darkening',slat:'4"'},
+{code:'ZSB',cat:'Zebra',series:'ZS',name:'Paris',color:'Beige',filter:'Room Darkening',slat:'4"'},
+{code:'ZSC',cat:'Zebra',series:'ZS',name:'Paris',color:'Dark Grey',filter:'Room Darkening',slat:'4"'},
+{code:'ZSD',cat:'Zebra',series:'ZS',name:'Paris',color:'Wood',filter:'Room Darkening',slat:'4"'},
+// Roller — R0 Seoul 0%
+{code:'R0A',cat:'Roller',series:'R0',name:'Seoul',color:'A',filter:'0% Openness',slat:''},
+{code:'R0B',cat:'Roller',series:'R0',name:'Seoul',color:'B',filter:'0% Openness',slat:''},
+{code:'R0C',cat:'Roller',series:'R0',name:'Seoul',color:'C',filter:'0% Openness',slat:''},
+{code:'R0D',cat:'Roller',series:'R0',name:'Seoul',color:'D',filter:'0% Openness',slat:''},
+// Roller — R1 Sunscreen 1%
+{code:'R1A',cat:'Roller',series:'R1',name:'Sunscreen 1%',color:'White',filter:'1% Openness',slat:''},
+{code:'R1B',cat:'Roller',series:'R1',name:'Sunscreen 1%',color:'Alabaster',filter:'1% Openness',slat:''},
+{code:'R1C',cat:'Roller',series:'R1',name:'Sunscreen 1%',color:'Soft Grey',filter:'1% Openness',slat:''},
+{code:'R1D',cat:'Roller',series:'R1',name:'Sunscreen 1%',color:'Black',filter:'1% Openness',slat:''},
+// Roller — R2 Istanbul (L=Light Filter, B=Blackout)
+{code:'R2A-L',cat:'Roller',series:'R2',name:'Istanbul',color:'A',filter:'Light Filter',slat:''},
+{code:'R2A-B',cat:'Roller',series:'R2',name:'Istanbul',color:'A',filter:'Blackout',slat:''},
+{code:'R2B-L',cat:'Roller',series:'R2',name:'Istanbul',color:'B',filter:'Light Filter',slat:''},
+{code:'R2B-B',cat:'Roller',series:'R2',name:'Istanbul',color:'B',filter:'Blackout',slat:''},
+{code:'R2C-L',cat:'Roller',series:'R2',name:'Istanbul',color:'C',filter:'Light Filter',slat:''},
+{code:'R2C-B',cat:'Roller',series:'R2',name:'Istanbul',color:'C',filter:'Blackout',slat:''},
+// Roller — R3 Sunscreen 3%
+{code:'R3A',cat:'Roller',series:'R3',name:'Sunscreen 3%',color:'A',filter:'3% Openness',slat:''},
+{code:'R3B',cat:'Roller',series:'R3',name:'Sunscreen 3%',color:'B',filter:'3% Openness',slat:''},
+{code:'R3C',cat:'Roller',series:'R3',name:'Sunscreen 3%',color:'C',filter:'3% Openness',slat:''},
+{code:'R3D',cat:'Roller',series:'R3',name:'Sunscreen 3%',color:'D',filter:'3% Openness',slat:''},
+// Roller — R4 London (L=Light Filter, B=Blackout)
+{code:'R4A-L',cat:'Roller',series:'R4',name:'London',color:'A',filter:'Light Filter',slat:''},
+{code:'R4A-B',cat:'Roller',series:'R4',name:'London',color:'A',filter:'Blackout',slat:''},
+{code:'R4B-L',cat:'Roller',series:'R4',name:'London',color:'B',filter:'Light Filter',slat:''},
+{code:'R4B-B',cat:'Roller',series:'R4',name:'London',color:'B',filter:'Blackout',slat:''},
+{code:'R4C-L',cat:'Roller',series:'R4',name:'London',color:'C',filter:'Light Filter',slat:''},
+{code:'R4C-B',cat:'Roller',series:'R4',name:'London',color:'C',filter:'Blackout',slat:''},
+{code:'R4D-L',cat:'Roller',series:'R4',name:'London',color:'D',filter:'Light Filter',slat:''},
+{code:'R4D-B',cat:'Roller',series:'R4',name:'London',color:'D',filter:'Blackout',slat:''},
+// Roller — R5 Sunscreen 5%
+{code:'R5A',cat:'Roller',series:'R5',name:'Sunscreen 5%',color:'A',filter:'5% Openness',slat:''},
+{code:'R5B',cat:'Roller',series:'R5',name:'Sunscreen 5%',color:'B',filter:'5% Openness',slat:''},
+{code:'R5C',cat:'Roller',series:'R5',name:'Sunscreen 5%',color:'C',filter:'5% Openness',slat:''},
+{code:'R5D',cat:'Roller',series:'R5',name:'Sunscreen 5%',color:'D',filter:'5% Openness',slat:''},
+// Roller — RP Printables
+{code:'RP-L',cat:'Roller',series:'RP',name:'Printables',color:'',filter:'Light Filter',slat:''},
+{code:'RP-B',cat:'Roller',series:'RP',name:'Printables',color:'',filter:'Blackout',slat:''},
+];
+function fabByCode(code){return FABRIC_CAT.find(f=>f.code===code);}
+function fabLabel(f){
+  if(!f)return'';
+  let s=f.code+' — '+f.name;
+  if(f.color)s+=' '+f.color;
+  if(f.filter)s+=' ('+f.filter+')';
+  if(f.slat)s+=' '+f.slat;
+  return s;
+}
+function fabsForCat(cat){return FABRIC_CAT.filter(f=>f.cat===cat);}
+function fabOptsByCat(cat,selected){
+  const list=fabsForCat(cat);
+  return'<option value="">Select fabric...</option>'+list.map(f=>`<option value="${f.code}" ${selected===f.code?'selected':''}>${fabLabel(f)}</option>`).join('');
+}
+const ROLE_NAV={
+  owner:[{s:'Overview'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'Jobs'},{s:'Production'},{p:'production',l:'Production Queue'},{s:'Office'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'},{s:'Warehouse'},{p:'fabric',l:'Fabric Stock'},{p:'hardware',l:'Hardware Stock'},{p:'shipments',l:'Shipments'},{p:'transfers',l:'Transfers'},{p:'movements',l:'Movement Log'},{s:'Admin'},{p:'reports',l:'Reports'},{p:'users',l:'Users'}],
+  admin:[{s:'Overview'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'All Jobs'},{s:'Office'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'},{s:'Warehouse'},{p:'fabric',l:'Fabric (view)'},{p:'transfers',l:'Transfers'},{s:'Admin'},{p:'users',l:'Users'}],
+  sales:[{s:'My Work'},{p:'dashboard',l:'Dashboard'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'jobs',l:'My Jobs'},{s:'Reference'},{p:'fabric',l:'Fabric Library'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'}],
+  warehouse:[{s:'Operations'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'Jobs'},{p:'production',l:'Production Queue'},{s:'Inventory'},{p:'fabric',l:'Fabric Stock'},{p:'hardware',l:'Hardware Stock'},{p:'shipments',l:'Shipments'},{p:'transfers',l:'Transfers'},{s:'Logs'},{p:'movements',l:'Movement Log'},{p:'tasks',l:'Tasks'}],
+  installer:[{s:'My Work'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'My Jobs'},{p:'tasks',l:'Tasks'},{p:'calendar',l:'Calendar'}],
+  factory:[{s:'Production'},{p:'dashboard',l:'Dashboard'},{p:'production',l:'Production Queue'},{p:'jobs',l:'Production Jobs'},{p:'tasks',l:'Tasks'}],
+};
+const PT={dashboard:'Dashboard',jobs:'Jobs',clients:'Clients',quotes:'Quotes',fabric:'Fabric Stock',hardware:'Hardware Stock',shipments:'Shipments',transfers:'Transfers',movements:'Movement Log',tasks:'Tasks',calendar:'Calendar',reports:'Reports',users:'User Management',production:'Production Queue'};
+const SVGP={dashboard:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',jobs:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',clients:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',quotes:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',fabric:'<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="4" y1="14" x2="20" y2="14"/><line x1="4" y1="18" x2="20" y2="18"/>',hardware:'<circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>',shipments:'<rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',transfers:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',movements:'<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>',tasks:'<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',production:'<rect x="2" y="7" width="20" height="14" rx="2"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="7" y1="7" x2="7" y2="3"/><line x1="12" y1="7" x2="12" y2="3"/><line x1="17" y1="7" x2="17" y2="3"/><circle cx="7" cy="16.5" r="1.5"/><circle cx="17" cy="16.5" r="1.5"/>',reports:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'};
+
+TOKEN=localStorage.getItem('wms_token');ME=JSON.parse(localStorage.getItem('wms_user')||'null');
+if(!TOKEN||!ME)window.location.href='/login.html';
+
+async function api(m,p,b){
+  const o={method:m,headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN}};
+  if(b)o.body=JSON.stringify(b);
+  const r=await fetch(p,o);
+  if(r.status===401){logout();return;}
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Request failed');}
+  return r.json();
+}
+const get=p=>api('GET',p),post=(p,b)=>api('POST',p,b),patch=(p,b)=>api('PATCH',p,b),del=p=>api('DELETE',p);
+function logout(){localStorage.removeItem('wms_token');localStorage.removeItem('wms_user');window.location.href='/login.html';}
+function can(...r){return ME&&r.includes(ME.role);}
+const toast=(msg,t='ok')=>{const el=document.createElement('div');el.className='toast'+(t==='err'?' te':t==='warn'?' tw2':'');el.textContent=msg;$('toasts').appendChild(el);setTimeout(()=>el.remove(),3200);};
+const fd=d=>d?new Date(d).toLocaleDateString('en-CA'):'—';
+const fn=(n,d=2)=>n!=null?parseFloat(n).toFixed(d):'—';
+const FRACS=[['0.125','1/8'],['0.25','1/4'],['0.375','3/8'],['0.5','1/2'],['0.625','5/8'],['0.75','3/4'],['0.875','7/8'],['0','—']];
+const frac=f=>{const m={0.125:'1/8',0.25:'1/4',0.375:'3/8',0.5:'1/2',0.625:'5/8',0.75:'3/4',0.875:'7/8',0:''};return m[parseFloat(f)]||'';};
+const ms=(w,f)=>{const n=parseInt(w)||0,fr=frac(f);return fr?`${n} ${fr}"`:`${n}"`;};
+function toFrac(v){
+  if(v==null||isNaN(v))return'—';
+  v=parseFloat(v);const neg=v<0;if(neg)v=-v;
+  const whole=Math.floor(v);const dec=v-whole;
+  // Round to nearest 1/8
+  const ei=Math.round(dec*8);
+  if(ei===0)return(neg?'-':'')+whole+'"';
+  if(ei===8)return(neg?'-':'')+(whole+1)+'"';
+  let n=ei,d=8;
+  if(n%2===0){n/=2;d/=2;}
+  if(n%2===0){n/=2;d/=2;}
+  const wp=whole>0?whole+' ':'';
+  return(neg?'-':'')+wp+n+'/'+d+'"';
+}
+function sb(s){const m={new:{c:'sn',l:'New'},measured:{c:'sm2',l:'Measured'},in_production:{c:'sip',l:'In Production'},ready:{c:'srd',l:'Ready'},installed:{c:'sin',l:'Installed'}};const x=m[s]||{c:'bgy',l:s};return`<span class="badge ${x.c}"><span class="dot"></span>${x.l}</span>`;}
+function stBadge(r){if(r<=0)return`<span class="badge brd">Out of Stock</span>`;if(r<20)return`<span class="badge bam">Low Stock</span>`;return`<span class="badge bgr">In Stock</span>`;}
+function qb(s){const m={draft:'qd Draft',sent:'qs Sent',accepted:'qa Accepted',converted:'qc Converted'};const[c,...l]=(m[s]||'bgy '+s).split(' ');return`<span class="badge ${c}">${l.join(' ')}</span>`;}
+function tb(s){const m={pending:'tp Pending',in_progress:'ti In Progress',done:'td2 Done'};const[c,...l]=(m[s]||'bgy '+s).split(' ');return`<span class="badge ${c}">${l.join(' ')}</span>`;}
+function pb(p){const m={low:'plo Low',medium:'pme Medium',high:'phi High',urgent:'pur Urgent'};const[c,...l]=(m[p]||'bgy '+p).split(' ');return`<span class="badge ${c}">${l.join(' ')}</span>`;}
+function rb(r){return`<span class="badge r${r[0]}">${r}</span>`;}
+function lp(loc){const c=LC[loc]||'#64748b';return`<span class="lp" style="background:${c}15;color:${c};border:1px solid ${c}30">${loc}</span>`;}
+function emp(t,s=''){return`<tr><td colspan="99"><div class="empty"><div class="et">${t}</div><div class="esb">${s}</div></div></td></tr>`;}
+function openModal(h){$('modal-root').innerHTML=`<div class="mo" id="mo">${h}</div>`;$('mo').addEventListener('click',e=>{if(e.target.id==='mo')closeModal();});}
+function closeModal(){$('modal-root').innerHTML='';}
+function toggleSidebar(){$('sidebar').classList.toggle('open');$('ov').classList.toggle('show');}
+function closeSidebar(){$('sidebar').classList.remove('open');$('ov').classList.remove('show');}
+function svgi(p){return`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${SVGP[p]||SVGP.jobs}</svg>`;}
+
+function boot(){
+  $('uav').textContent=ME.name?ME.name[0].toUpperCase():'?';
+  $('uname').textContent=ME.name;$('urole').textContent=ME.role;
+  const items=ROLE_NAV[ME.role]||[];
+  $('snav').innerHTML=items.map(x=>x.s?`<span class="nl">${x.s}</span>`:`<a class="ni" data-p="${x.p}" onclick="nav('${x.p}');closeSidebar()">${svgi(x.p)}<span>${x.l}</span></a>`).join('');
+  nav('dashboard');
+}
+function nav(page,param){
+  document.querySelectorAll('.ni[data-p]').forEach(el=>el.classList.toggle('active',el.dataset.p===page.split('-')[0]));
+  $('tactions').innerHTML='';
+  $('ptitle').textContent=PT[page.split('-')[0]]||page;
+  const p=page;
+  if(p==='dashboard')rDash();else if(p==='jobs')rJobs();else if(p.startsWith('job-detail'))rJobDetail(param);
+  else if(p==='clients')rClients();else if(p==='quotes')rQuotes();else if(p.startsWith('quote-edit'))rQuoteBuilder(param);
+  else if(p==='fabric')rFabric();
+  else if(p==='hardware')rHardware();else if(p==='shipments')rShipments();else if(p==='transfers')rTransfers();
+  else if(p==='movements')rMovements();else if(p==='tasks')rTasks();else if(p==='calendar')rCalendar();
+  else if(p==='users')rUsers();else if(p==='reports')rReports();
+  else if(p==='production')rProduction();
+}
+
+// ── DASHBOARD ──
+async function rDash(){
+  const d=await get('/api/dashboard');
+  const sm={};d.jobCounts.forEach(r=>sm[r.status]=r.count);
+  const rev=d.revenue||{};
+  const role=ME.role;
+  let stats='';
+  if(role==='owner')stats=`<div class="sc"><div class="slb">Total Jobs</div><div class="sv">${d.totalJobs}</div></div><div class="sc"><div class="slb">Quote Revenue</div><div class="sv">$${fn(rev.total||0,0)}</div><div class="ssb">${rev.count||0} quotes</div></div><div class="sc"><div class="slb">In Production</div><div class="sv">${sm.in_production||0}</div></div><div class="sc"><div class="slb">Clients</div><div class="sv">${d.totalClients}</div></div>`;
+  else if(role==='admin')stats=`<div class="sc"><div class="slb">Total Jobs</div><div class="sv">${d.totalJobs}</div></div><div class="sc"><div class="slb">Measured</div><div class="sv">${sm.measured||0}</div></div><div class="sc"><div class="slb">In Production</div><div class="sv">${sm.in_production||0}</div></div><div class="sc"><div class="slb">Ready</div><div class="sv">${sm.ready||0}</div></div>`;
+  else if(role==='sales')stats=`<div class="sc"><div class="slb">My Jobs</div><div class="sv">${d.totalJobs}</div></div><div class="sc"><div class="slb">Clients</div><div class="sv">${d.totalClients}</div></div><div class="sc"><div class="slb">Open Tasks</div><div class="sv">${d.myTasks?.length||0}</div></div>`;
+  else if(role==='warehouse')stats=`<div class="sc"><div class="slb">In Production</div><div class="sv">${sm.in_production||0}</div></div><div class="sc"><div class="slb">Ready</div><div class="sv">${sm.ready||0}</div></div><div class="sc"><div class="slb">Low Stock Alerts</div><div class="sv">${d.lowFabric?.length||0}</div></div><div class="sc"><div class="slb">My Tasks</div><div class="sv">${d.myTasks?.length||0}</div></div>`;
+  else stats=`<div class="sc"><div class="slb">In Production</div><div class="sv">${sm.in_production||0}</div></div><div class="sc"><div class="slb">Ready</div><div class="sv">${sm.ready||0}</div></div>`;
+  const ls=d.lowFabric?.length&&can('owner','warehouse')?`<div class="card"><div class="ch"><h2>Low Stock Alert</h2><button class="btn bg bsm" onclick="nav('fabric')">View Inventory</button></div><div class="tw"><table><thead><tr><th>Fabric</th><th>Code</th><th>Remaining (m)</th><th>Status</th></tr></thead><tbody>${d.lowFabric.map(f=>`<tr><td><strong>${f.alias}</strong></td><td><span class="mono">${f.catalogue_no}</span></td><td>${fn(f.remaining,1)}</td><td>${stBadge(f.remaining)}</td></tr>`).join('')}</tbody></table></div></div>`:'';
+  const mt=d.myTasks?.length?`<div class="card"><div class="ch"><h2>My Tasks</h2><button class="btn bg bsm" onclick="nav('tasks')">View All</button></div><div class="tw"><table><thead><tr><th>Task</th><th>Priority</th><th>Due</th><th>Status</th></tr></thead><tbody>${d.myTasks.map(t=>`<tr><td><strong>${t.title}</strong></td><td>${pb(t.priority)}</td><td class="muted">${fd(t.due_date)}</td><td>${tb(t.status)}</td></tr>`).join('')}</tbody></table></div></div>`:'';
+  $('content').innerHTML=`<div class="sg">${stats}</div>${ls}${mt}<div class="card"><div class="ch"><h2>Recent Jobs</h2><button class="btn bp bsm" onclick="nav('jobs')">View All Jobs</button></div><div class="tw"><table><thead><tr><th>Job #</th><th>Client</th><th>Rep</th><th>Date In</th><th>Status</th><th></th></tr></thead><tbody>${d.recentJobs?.length?d.recentJobs.map(j=>`<tr><td><a style="color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none" onclick="nav('job-detail',${j.id})">${j.job_number}</a></td><td><strong>${j.client_name||'—'}</strong></td><td class="muted">${j.rep||'—'}</td><td class="muted">${fd(j.date_in)}</td><td>${sb(j.status)}</td><td><button class="btn bg bxs" onclick="nav('job-detail',${j.id})">Open</button></td></tr>`).join(''):emp('No jobs yet')}</tbody></table></div></div>`;
+}
+</script>
+<script>
+// ── JOBS ──
+async function rJobs(){
+  const jobs=await get('/api/jobs');
+  if(can('owner','admin','sales'))$('tactions').innerHTML=`<button class="btn bsec bsm" onclick="mUploadCSV()">Upload CSV</button><button class="btn bp bsm" onclick="mNewJob()">New Job</button>`;
+  let tf='all';
+  function render(f){
+    const list=f==='all'?jobs:jobs.filter(j=>j.status===f);
+    $('jt').innerHTML=list.length?list.map(j=>`<tr><td><a style="color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none" onclick="nav('job-detail',${j.id})">${j.job_number}</a></td><td><strong>${j.client_name||'—'}</strong><br><span style="font-size:11px;color:var(--text3)">${j.client_address||''}</span></td><td class="muted">${j.rep||'—'}</td><td class="muted">${fd(j.date_in)}</td><td class="muted">${fd(j.date_due)}</td><td><span class="badge bbl">${j.window_count||0} windows</span></td><td>${sb(j.status)}</td><td style="display:flex;gap:4px"><button class="btn bsec bxs" onclick="nav('job-detail',${j.id})">Open</button>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="dJob(${j.id})">Delete</button>`:''}</td></tr>`).join(''):emp('No jobs found','');
+  }
+  $('content').innerHTML=`<div class="tabs" id="jf">${['all','new','measured','in_production','ready','installed'].map(s=>`<button class="tab ${s==='all'?'active':''}" data-s="${s}" onclick="setJF('${s}')">${s==='all'?'All Jobs':s.replace('_',' ')}</button>`).join('')}</div><div class="card"><div class="tw"><table><thead><tr><th>Job #</th><th>Client</th><th>Rep</th><th>Date In</th><th>Due</th><th>Windows</th><th>Status</th><th>Actions</th></tr></thead><tbody id="jt"></tbody></table></div></div>`;
+  render('all');
+  window.setJF=f=>{document.querySelectorAll('#jf .tab').forEach(b=>b.classList.toggle('active',b.dataset.s===f));render(f);};
+  window.dJob=async id=>{if(!confirm('Delete this job?'))return;await del('/api/jobs/'+id);toast('Job deleted');rJobs();};
+}
+async function mNewJob(){
+  const clients=await get('/api/clients');
+  openModal(`<div class="md mmd"><div class="mh"><h3>New Job</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fss">Client</div>
+    <div class="fg"><label>Select Existing Client</label><select id="njc" onchange="this.value?$('njnf').style.display='none':$('njnf').style.display='block'"><option value="">— Create New —</option>${clients.map(c=>`<option value="${c.id}">${c.name}${c.address?' — '+c.address:''}</option>`).join('')}</select></div>
+    <div id="njnf"><div class="fr2"><div class="fg"><label>Client Name *</label><input id="njn" placeholder="John Smith"/></div><div class="fg"><label>Phone</label><input id="njp" placeholder="204-xxx-xxxx"/></div></div><div class="fg"><label>Address</label><input id="nja" placeholder="123 Main St, Winnipeg"/></div></div>
+    <div class="fss" style="margin-top:14px">Job Details</div>
+    <div class="fr2"><div class="fg"><label>Sales Rep</label><input id="njr" value="${ME.name}" placeholder="Rep name"/></div><div class="fg"><label>Date In</label><input type="date" id="njdi" value="${new Date().toISOString().split('T')[0]}"/></div><div class="fg"><label>Date Due</label><input type="date" id="njdd"/></div><div class="fg"><label>Notes</label><input id="njno" placeholder="Optional"/></div></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="cJob()">Create Job</button></div></div>`);
+}
+async function cJob(){
+  let cid=$('njc').value;
+  if(!cid){const n=$('njn').value.trim();if(!n){toast('Client name required','err');return;}const c=await post('/api/clients',{name:n,address:$('nja').value,phone:$('njp').value});cid=c.id;}
+  const job=await post('/api/jobs',{client_id:cid,rep:$('njr').value,date_in:$('njdi').value,date_due:$('njdd').value,notes:$('njno').value});
+  closeModal();toast('Job '+job.job_number+' created');nav('job-detail',job.id);
+}
+async function rJobDetail(id){
+  _cJob=await get('/api/jobs/'+id);
+  _fabs=await get('/api/fabrics');_profs=await get('/api/profiles');
+  $('ptitle').textContent=_cJob.job_number;
+  const ce=can('owner','admin','sales','warehouse'),cc=can('owner','admin','warehouse','factory');
+  $('tactions').innerHTML=`${ce?`<select class="btn bsec bsm" style="font-weight:600" onchange="updJS(${id},this.value)">${['new','measured','in_production','ready','installed'].map(s=>`<option value="${s}" ${_cJob.status===s?'selected':''}>${{new:'New',measured:'Measured',in_production:'In Production',ready:'Ready',installed:'Installed'}[s]}</option>`).join('')}</select>`:''}${cc?`<button class="btn bsec bsm" onclick="printS(${id},'fabric')">Fabric Sheet</button><button class="btn bsec bsm" onclick="printS(${id},'hardware')">Hardware Sheet</button><button class="btn bsec bsm" onclick="printAssembly(${id})">Assembly Sheet</button>`:''}${ce?`<button class="btn bp bsm" onclick="mAddWin(${id})">Add Window</button>`:''}`;
+  const j=_cJob;
+  $('content').innerHTML=`<div class="card"><div style="padding:14px 18px"><div class="ig"><div><div class="ibl">Client</div><div class="ibv">${j.client_name||'—'}</div><div class="ibsb">${j.client_address||''}</div></div><div><div class="ibl">Contact</div><div class="ibv">${j.contact||'—'}</div><div class="ibsb">${j.phone||''}</div></div><div><div class="ibl">Rep / Date In</div><div class="ibv">${j.rep||'—'}</div><div class="ibsb">${fd(j.date_in)}</div></div><div><div class="ibl">Due / Status</div><div class="ibv">${fd(j.date_due)}</div><div style="margin-top:5px">${sb(j.status)}</div></div></div></div></div>
+  <div class="card"><div class="ch"><h2>Windows (${j.windows.length})</h2>${ce?`<button class="btn bp bsm" onclick="mAddWin(${id})">Add Window</button>`:''}</div><div class="tw"><table><thead><tr><th>#</th><th>Location</th><th>Fabric</th><th>Profile</th><th>Width</th><th>Length</th><th>Mount</th><th>Control</th>${cc?`<th>Cassette Cut</th><th>Bottom Rail</th><th>Fabric Width</th><th>Fabric Drop</th>`:''}<th>Production</th><th>Cord</th><th>Brackets</th><th></th></tr></thead><tbody id="wt"></tbody></table></div></div>`;
+  renderWT(j.windows,cc,ce);
+}
+function renderWT(wins,cc,ce){
+  $('wt').innerHTML=wins.length?wins.map(w=>`<tr><td class="muted">${w.window_no}</td><td><strong>${w.location||'—'}</strong></td><td><div style="display:flex;align-items:center;gap:7px"><div style="width:13px;height:13px;border-radius:3px;background:${w.colour_hex||'#ccc'};border:1px solid var(--border);flex-shrink:0"></div><div><div style="font-weight:600;font-size:12px">${w.fabric_alias||'—'}</div><span class="mono" style="font-size:10px">${w.catalogue_no||''}</span></div></div></td><td><span class="badge bpu">Profile ${w.profile_code||'—'}</span></td><td class="mono">${ms(w.width_in,w.width_frac)}</td><td class="mono">${ms(w.length_in,w.length_frac)}</td><td>${w.mount_type==='in'||w.mount_type==='I'?'<span class="badge btl">Inside</span>':'<span class="badge bam">Outside</span>'}</td><td class="muted">${w.control_type||'—'} ${w.lr_side||''}</td>${cc?`<td class="mono"><strong>${toFrac(w.cut_cassette)}</strong></td><td class="mono"><strong>${toFrac(w.cut_bottom_rail)}</strong></td><td class="mono" style="color:var(--green-text)"><strong>${toFrac(w.cut_fabric_width)}</strong></td><td class="mono" style="color:var(--green-text)"><strong>${toFrac(w.cut_fabric_drop)}</strong></td>`:''}<td>${prodBadge(w.production_status||'pending')}</td><td class="muted">${w.cord_wand_size||'—'}</td><td class="muted">${w.bracket_count||0}×</td><td>${ce?`<button class="btn bg bxs" style="color:var(--red)" onclick="dWin(${w.id})">Remove</button>`:''}</td></tr>`).join(''):emp('No windows added','Click "Add Window" to begin measuring');
+}
+async function updJS(id,s){await patch('/api/jobs/'+id,{status:s});toast('Status updated');}
+async function dWin(id){if(!confirm('Remove window?'))return;await del('/api/windows/'+id);toast('Window removed');rJobDetail(_cJob.id);}
+async function mAddWin(jid){
+  const fo=FRACS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  openModal(`<div class="md mlg"><div class="mh"><h3>Add Window</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fr2"><div class="fg"><label>Location / Label</label><input id="awl" placeholder="e.g. Living Room — Left"/></div><div class="fg"><label>Notes</label><input id="awn" placeholder="Optional"/></div></div>
+    <div class="fss">Measurements (inches)</div>
+    <div class="fr4"><div class="fg"><label>Width (whole)</label><input type="number" id="aww" placeholder="72" oninput="lc()"/></div><div class="fg"><label>Width Fraction</label><select id="awwf" onchange="lc()">${fo}</select></div><div class="fg"><label>Drop (whole)</label><input type="number" id="awh" placeholder="54" oninput="lc()"/></div><div class="fg"><label>Drop Fraction</label><select id="awhf" onchange="lc()">${fo}</select></div></div>
+    <div class="fss">Configuration</div>
+    <div class="fr2"><div class="fg"><label>Fabric</label><select id="awfab" onchange="lc()"><option value="">— Select fabric —</option>${_fabs.map(f=>`<option value="${f.id}" data-c="${f.catalogue_no}">${f.catalogue_no} — ${f.alias} (${fn(f.remaining,1)}m available)</option>`).join('')}</select></div><div class="fg"><label>Profile (Material Type)</label><select id="awpr" onchange="lc()"><option value="">— Select profile —</option>${_profs.map(p=>`<option value="${p.code}">${p.code} — ${p.blind_type.toUpperCase()} — ${p.description}</option>`).join('')}</select></div><div class="fg"><label>Cassette Colour</label><select id="awcas" onchange="lc()"><option value="White">White</option><option value="Black">Black</option><option value="Grey">Grey</option><option value="Silver">Silver</option><option value="Mill">Mill (no cassette)</option></select></div><div class="fg"><label>Mount</label><select id="awmt" onchange="lc()"><option value="in">Inside (IB)</option><option value="out">Outside (OB)</option></select></div><div class="fg"><label>Control</label><select id="awct" onchange="lc()"><option value="chain">Chain</option><option value="wand">Wand</option><option value="motor">Motor</option><option value="motor-tubular">Motor Tubular</option></select></div><div class="fg"><label>Control Side</label><select id="awlr"><option value="R">Right</option><option value="L">Left</option></select></div></div>
+    <div class="fss">Calculated Cuts (live preview)</div>
+    <div id="cprev" style="color:var(--text3);font-size:13px;padding:12px 0">Fill in width, length and profile to calculate cuts.</div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="addWin(${jid})">Save Window</button></div></div>`);
+}
+function lc(){
+  const w=parseFloat($('aww')?.value)||0,wf=parseFloat($('awwf')?.value)||0,h=parseFloat($('awh')?.value)||0,hf=parseFloat($('awhf')?.value)||0;
+  const pr=$('awpr')?.value,cas=$('awcas')?.value||'White',ct=$('awct')?.value||'chain';
+  const fc=$('awfab')?.selectedOptions[0]?.dataset.c||'';
+  if(!w||!h||!pr){$('cprev').innerHTML='<span style="color:var(--text3);font-size:13px">Fill in width, length and profile to calculate cuts.</span>';return;}
+  const p=PDATA[pr];if(!p)return;
+  const tw=w+wf,th=h+hf;
+  const cc=(tw+p.c).toFixed(3),cr=(tw+p.r).toFixed(3),cbr=(tw+p.br).toFixed(3),cbc=p.bc?(tw+p.bc).toFixed(3):'N/A';
+  const fw=(parseFloat(cbr)-0.0625).toFixed(3),fd2=(cas==='Mill'?(th+1.5-.5):(th+6)).toFixed(3);
+  const px=fc?fc[0].toUpperCase():'',fm=((px==='Z'||px==='S')?parseFloat(fd2)*.0254*2:parseFloat(fd2)*.0254).toFixed(3);
+  let cord='L';if(ct.startsWith('m'))cord='None';else if(th<30)cord='S';else if(th<45)cord='M';
+  const brk=tw>59?3:2;
+  $('cprev').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
+      ${[['Cassette',toFrac(cc),'#f5f3ff','var(--purple-text)'],['Core Roller',toFrac(cr),'#f5f3ff','var(--purple-text)'],['Bottom Rail',toFrac(cbr),'#f5f3ff','var(--purple-text)'],['Bottom Core',cbc!=='N/A'?toFrac(cbc):'N/A','#f5f3ff','var(--purple-text)']].map(([l,v,bg,c])=>`<div style="background:${bg};border-radius:7px;padding:10px;text-align:center"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:${c};margin-bottom:3px">${l}</div><div style="font-size:16px;font-weight:800;font-family:monospace;color:${c}">${v}</div></div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      ${[['Fabric Width',toFrac(fw),'var(--green-bg)','var(--green-text)'],['Fabric Drop',toFrac(fd2),'var(--green-bg)','var(--green-text)'],['Metres Used',fm+'m','var(--green-bg)','var(--green-text)'],['Cord / Brackets',cord+' / '+brk+'×','#f8fafc','var(--text2)']].map(([l,v,bg,c])=>`<div style="background:${bg};border-radius:7px;padding:10px;text-align:center"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:${c};margin-bottom:3px">${l}</div><div style="font-size:16px;font-weight:800;font-family:monospace;color:${c}">${v}</div></div>`).join('')}
+    </div>`;
+}
+async function addWin(jid){
+  if(!$('aww').value||!$('awh').value){toast('Width and height required','err');return;}
+  if(!$('awpr').value){toast('Select a profile','err');return;}
+  const win=await post('/api/jobs/'+jid+'/windows',{location:$('awl').value,fabric_id:$('awfab').value?parseInt($('awfab').value):null,profile_code:$('awpr').value,cassette_colour:$('awcas').value,width_in:parseFloat($('aww').value)||0,width_frac:parseFloat($('awwf').value)||0,length_in:parseFloat($('awh').value)||0,length_frac:parseFloat($('awhf').value)||0,control_type:$('awct').value,lr_side:$('awlr').value,mount_type:$('awmt').value,notes:$('awn').value});
+  closeModal();toast('Window added');_cJob.windows.push(win);
+  document.querySelector('#wt').closest('.card').querySelector('.ch h2').textContent='Windows ('+_cJob.windows.length+')';
+  renderWT(_cJob.windows,can('owner','admin','warehouse','factory'),can('owner','admin','sales','warehouse'));
+}
+async function printS(id,type){
+  const {job,windows}=await get('/api/jobs/'+id+'/cutsheet');
+  const iF=type==='fabric';
+  const col=iF?'#166534':'#1d4ed8',bg2=iF?'#dcfce7':'#dbeafe';
+  const title=iF?'Fabric Cut Sheet':'Hardware Cut Sheet',sub=iF?'For fabric team — not for client':'For hardware / metal team';
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><title>${title} — ${job.job_number}</title><style>*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,sans-serif;}body{padding:26px;background:#fff;font-size:12px;color:#000;}.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid ${col};}.ht{font-size:20px;font-weight:800;color:${col};}.hs{font-size:11px;color:#555;margin-top:2px;}.hc{display:inline-block;background:${col};color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;margin-top:6px;}.hcl{text-align:right;font-size:11px;line-height:1.7;}table{width:100%;border-collapse:collapse;margin-top:12px;}th{background:${col};color:#fff;padding:7px 9px;font-size:10px;text-align:left;text-transform:uppercase;letter-spacing:.4px;}td{padding:7px 9px;border-bottom:1px solid #e5e7eb;font-size:11px;}tr:nth-child(even)td{background:#f9fafb;}.cut{font-weight:700;font-family:monospace;font-size:12px;color:${col};background:${bg2};padding:1px 5px;border-radius:3px;}.ft{margin-top:14px;padding-top:10px;border-top:1px solid #ddd;font-size:10px;color:#666;display:flex;justify-content:space-between;}@media print{body{padding:14px}}</style></head><body>
+  <div class="hdr"><div><div class="ht">${title}</div><div class="hs">${sub}</div><div class="hc">${job.job_number}</div></div><div class="hcl"><strong style="font-size:13px">${job.client_name||'—'}</strong><br>${job.client_address||''}<br>In: ${fd(job.date_in)} &nbsp; Due: ${fd(job.date_due)}<br>Rep: ${job.rep||'—'}</div></div>
+  <table><thead><tr>${iF?`<th>#</th><th>Location</th><th>Code</th><th>Fabric Name</th><th>Slat"</th><th>CUT WIDTH</th><th>CUT DROP</th><th>Metres</th><th>Cassette</th>`:`<th>#</th><th>Location</th><th>Profile</th><th>Type</th><th>CASSETTE CUT</th><th>CORE ROLLER</th><th>BOTTOM RAIL</th><th>BOTTOM CORE</th><th>Mount</th><th>Brackets</th><th>Cord</th><th>Control</th>`}</tr></thead>
+  <tbody>${windows.map(w=>iF?`<tr><td>${w.window_no}</td><td>${w.location||'—'}</td><td><strong>${w.catalogue_no||'—'}</strong></td><td>${w.fabric_alias||'—'}</td><td>${w.slat_size||'—'}"</td><td class="cut">${toFrac(w.cut_fabric_width)}</td><td class="cut">${toFrac(w.cut_fabric_drop)}</td><td class="cut">${fn(w.fabric_meters,3)} m</td><td>${w.cassette_colour||'—'}</td></tr>`:`<tr><td>${w.window_no}</td><td>${w.location||'—'}</td><td><strong>${w.profile_code||'—'}</strong></td><td>${(w.blind_type||'').toUpperCase()}</td><td class="cut">${w.cut_cassette!=null?toFrac(w.cut_cassette):'N/A'}</td><td class="cut">${toFrac(w.cut_roller)}</td><td class="cut">${toFrac(w.cut_bottom_rail)}</td><td class="cut">${w.cut_bottom_core?toFrac(w.cut_bottom_core):'N/A'}</td><td>${w.mount_type==='in'||w.mount_type==='I'?'Inside':'Outside'}</td><td>${w.bracket_count||0}×</td><td>${w.cord_wand_size||'—'}</td><td>${w.control_type||'—'} ${w.lr_side||''}</td></tr>`).join('')}</tbody></table>
+  <div class="ft"><span>Windows: ${windows.length}</span><span>${iF?`Total fabric: ${windows.reduce((s,w)=>s+(parseFloat(w.fabric_meters)||0),0).toFixed(3)} m`:`${job.job_number} — ${job.client_name||''}`}</span><span>Printed: ${new Date().toLocaleString()}</span></div>
+  <script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close();
+}
+async function printAssembly(id){
+  const {job,windows}=await get('/api/jobs/'+id+'/cutsheet');
+  const col='#1e293b',accent='#2563eb';
+  // Summarise blind types
+  const types={};windows.forEach(w=>{const t=(w.blind_type||'Zebra').toUpperCase();types[t]=(types[t]||0)+1;});
+  const typeSummary=Object.entries(types).map(([t,c])=>c+'× '+t).join(', ');
+  // Control type display
+  function ctrlLabel(c){const m={chain:'Beaded Chain',wand:'Wand',motor:'Motorised',cordless:'Cordless','motor-tubular':'Motorised Tubular'};return m[(c||'').toLowerCase()]||c||'—';}
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><title>Assembly &amp; QC Check Sheet — ${job.job_number}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+body{padding:24px;background:#fff;font-size:11px;color:#000;}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:12px;border-bottom:3px solid ${col};}
+.ht{font-size:20px;font-weight:800;color:${col};}
+.hs{font-size:11px;color:#555;margin-top:2px;}
+.hc{display:inline-block;background:${col};color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;margin-top:6px;}
+.hcl{text-align:right;font-size:11px;line-height:1.7;}
+.sum{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.sb{border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;}
+.sbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:3px;}
+.sbv{font-size:16px;font-weight:800;color:${col};}
+.sbsub{font-size:10px;color:#94a3b8;margin-top:2px;}
+.wcard{border:1.5px solid #cbd5e1;border-radius:8px;margin-bottom:14px;page-break-inside:avoid;}
+.wh{background:#f1f5f9;padding:10px 14px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;border-radius:8px 8px 0 0;}
+.wn{font-size:14px;font-weight:800;color:${col};}
+.wloc{font-size:12px;font-weight:600;color:#475569;}
+.wbody{padding:12px 14px;}
+.dg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;}
+.di{}.dl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;margin-bottom:2px;}
+.dv{font-size:12px;font-weight:700;color:#0f172a;}
+.dv.cut{color:${accent};font-family:monospace;font-size:13px;}
+.sec{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8;margin:10px 0 6px;padding-top:8px;border-top:1px solid #f1f5f9;}
+.chk{display:grid;grid-template-columns:1fr 1fr;gap:0;}
+.ci{display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #e2e8f0;margin:-0.5px;}
+.cb{width:14px;height:14px;border:1.5px solid #94a3b8;border-radius:3px;flex-shrink:0;}
+.cl{font-size:11px;color:#0f172a;}
+.qc{display:flex;align-items:center;gap:12px;margin-top:8px;padding:8px 10px;border:1.5px solid ${accent};border-radius:6px;background:#f8fafc;}
+.qcl{font-size:11px;font-weight:700;color:${accent};white-space:nowrap;}
+.pf{display:flex;gap:10px;align-items:center;}
+.pf span{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;}
+.pf .cb{border-color:${accent};}
+.qcn{flex:1;border-bottom:1px solid #cbd5e1;min-height:16px;margin-left:8px;}
+.signoff{margin-top:18px;border:2px solid ${col};border-radius:8px;padding:16px;page-break-inside:avoid;}
+.sot{font-size:14px;font-weight:800;color:${col};margin-bottom:12px;}
+.sg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.sf{}.sfl{font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:6px;}
+.sline{border-bottom:1.5px solid #0f172a;min-height:28px;}
+.ft{margin-top:14px;padding-top:10px;border-top:1px solid #ddd;font-size:9px;color:#888;display:flex;justify-content:space-between;}
+@media print{body{padding:14px;}.wcard{break-inside:avoid;}.signoff{break-inside:avoid;}}
+</style></head><body>
+
+<div class="hdr">
+  <div>
+    <div class="ht">Assembly &amp; Quality Check Sheet</div>
+    <div class="hs">Final assembly checklist and QC sign-off — not for customer</div>
+    <div class="hc">${job.job_number}</div>
+  </div>
+  <div class="hcl">
+    <strong style="font-size:13px">${job.client_name||'—'}</strong><br>
+    ${job.client_address||''}<br>
+    In: ${fd(job.date_in)} &nbsp; Due: ${fd(job.date_due)}<br>
+    Rep: ${job.rep||'—'}
+  </div>
+</div>
+
+<div class="sum">
+  <div class="sb"><div class="sbl">Total Blinds</div><div class="sbv">${windows.length}</div></div>
+  <div class="sb"><div class="sbl">Blind Types</div><div class="sbv" style="font-size:12px">${typeSummary}</div></div>
+  <div class="sb"><div class="sbl">Status</div><div class="sbv" style="font-size:12px">${(job.status||'').replace('_',' ').toUpperCase()}</div></div>
+  <div class="sb"><div class="sbl">Date Due</div><div class="sbv" style="font-size:13px">${fd(job.date_due)}</div></div>
+</div>
+
+${windows.map(w=>`
+<div class="wcard">
+  <div class="wh">
+    <div><span class="wn">Window ${w.window_no}</span> <span class="wloc">${w.location||''}</span></div>
+    <div style="font-size:11px;font-weight:700;color:#475569">${(w.blind_type||'Zebra').toUpperCase()} — Profile ${w.profile_code||'—'}</div>
+  </div>
+  <div class="wbody">
+    <div class="dg">
+      <div class="di"><div class="dl">Fabric Code</div><div class="dv">${w.catalogue_no||'—'}</div></div>
+      <div class="di"><div class="dl">Fabric Name</div><div class="dv">${w.fabric_alias||'—'}</div></div>
+      <div class="di"><div class="dl">Cassette Colour</div><div class="dv">${w.cassette_colour||'—'}</div></div>
+      <div class="di"><div class="dl">Slat Size</div><div class="dv">${w.slat_size||'—'}"</div></div>
+    </div>
+    <div class="dg">
+      <div class="di"><div class="dl">Order Width</div><div class="dv">${toFrac((w.width_in||0)+(w.width_frac||0))}</div></div>
+      <div class="di"><div class="dl">Order Drop</div><div class="dv">${toFrac((w.length_in||0)+(w.length_frac||0))}</div></div>
+      <div class="di"><div class="dl">Mount</div><div class="dv">${w.mount_type==='in'||w.mount_type==='I'?'Inside':'Outside'}</div></div>
+      <div class="di"><div class="dl">Control Type</div><div class="dv">${ctrlLabel(w.control_type)}</div></div>
+    </div>
+    <div class="dg">
+      <div class="di"><div class="dl">Control Side</div><div class="dv">${w.lr_side||'—'}</div></div>
+      <div class="di"><div class="dl">Brackets</div><div class="dv">${w.bracket_count||0}×</div></div>
+      <div class="di"><div class="dl">Cord / Wand</div><div class="dv">${w.cord_wand_size||'—'}</div></div>
+      <div class="di"><div class="dl">Fabric Metres</div><div class="dv">${fn(w.fabric_meters,3)} m</div></div>
+    </div>
+    <div class="dg">
+      <div class="di"><div class="dl">Cassette Cut</div><div class="dv cut">${w.cut_cassette!=null?toFrac(w.cut_cassette):'N/A'}</div></div>
+      <div class="di"><div class="dl">Core Roller</div><div class="dv cut">${toFrac(w.cut_roller)}</div></div>
+      <div class="di"><div class="dl">Bottom Rail</div><div class="dv cut">${toFrac(w.cut_bottom_rail)}</div></div>
+      <div class="di"><div class="dl">Bottom Core</div><div class="dv cut">${w.cut_bottom_core?toFrac(w.cut_bottom_core):'N/A'}</div></div>
+    </div>
+    <div class="dg">
+      <div class="di"><div class="dl">Fabric Cut Width</div><div class="dv cut">${toFrac(w.cut_fabric_width)}</div></div>
+      <div class="di"><div class="dl">Fabric Cut Drop</div><div class="dv cut">${toFrac(w.cut_fabric_drop)}</div></div>
+    </div>
+
+    <div class="sec">Assembler Checklist</div>
+    <div class="chk">
+      <div class="ci"><div class="cb"></div><div class="cl">Fabric correct &amp; matches code</div></div>
+      <div class="ci"><div class="cb"></div><div class="cl">Cut dimensions verified</div></div>
+      <div class="ci"><div class="cb"></div><div class="cl">Cassette colour correct</div></div>
+      <div class="ci"><div class="cb"></div><div class="cl">Control type: ${ctrlLabel(w.control_type)}</div></div>
+      <div class="ci"><div class="cb"></div><div class="cl">Control side: ${w.lr_side||'—'}</div></div>
+      <div class="ci"><div class="cb"></div><div class="cl">Brackets included (${w.bracket_count||0}×)</div></div>
+      <div class="ci"><div class="cb"></div><div class="cl">Cord / wand length correct</div></div>
+      <div class="ci"><div class="cb"></div><div class="cl">Mount type: ${w.mount_type==='in'||w.mount_type==='I'?'Inside':'Outside'}</div></div>
+      <div class="ci"><div class="cb"></div><div class="cl">No fabric defects or damage</div></div>
+      <div class="ci"><div class="cb"></div><div class="cl">Clean finish — no marks or debris</div></div>
+    </div>
+
+    <div class="qc">
+      <div class="qcl">QC CHECK:</div>
+      <div class="pf">
+        <span><div class="cb"></div> PASS</span>
+        <span><div class="cb"></div> FAIL</span>
+      </div>
+      <div style="font-size:10px;color:#64748b;white-space:nowrap">Notes:</div>
+      <div class="qcn"></div>
+    </div>
+  </div>
+</div>
+`).join('')}
+
+<div class="signoff">
+  <div class="sot">Final Job Sign-Off</div>
+  <div style="margin-bottom:14px;font-size:11px;color:#475569">
+    All ${windows.length} window(s) assembled, checked, and ready for delivery/installation.
+    <span style="font-weight:700">${typeSummary}</span> for <span style="font-weight:700">${job.client_name||'—'}</span>.
+  </div>
+  <div class="sg">
+    <div class="sf"><div class="sfl">Assembled By</div><div class="sline"></div></div>
+    <div class="sf"><div class="sfl">QC Approved By</div><div class="sline"></div></div>
+    <div class="sf"><div class="sfl">Date</div><div class="sline"></div></div>
+  </div>
+</div>
+
+<div class="ft">
+  <span>${job.job_number} — ${job.client_name||''}</span>
+  <span>Total: ${windows.length} blind(s)</span>
+  <span>Printed: ${new Date().toLocaleString()}</span>
+</div>
+
+<script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close();
+}
+</script>
+<script>
+// ── CLIENTS ──
+async function rClients(){
+  const clients=await get('/api/clients');window._cc=clients;
+  $('tactions').innerHTML=`<button class="btn bp bsm" onclick="mClient()">New Client</button>`;
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Clients (${clients.length})</h2></div><div class="tw"><table><thead><tr><th>Name</th><th>Address</th><th>Contact</th><th>Phone</th><th>Email</th><th></th></tr></thead><tbody>${clients.length?clients.map(c=>`<tr><td><strong>${c.name}</strong></td><td class="muted">${c.address||'—'}</td><td class="muted">${c.contact||'—'}</td><td class="muted">${c.phone||'—'}</td><td class="muted">${c.email||'—'}</td><td><button class="btn bg bxs" onclick="mClient(${c.id})">Edit</button></td></tr>`).join(''):emp('No clients yet','Add your first client to get started')}</tbody></table></div></div>`;
+}
+function mClient(id){
+  const c=id&&window._cc?window._cc.find(x=>x.id===id):null;
+  openModal(`<div class="md mmd"><div class="mh"><h3>${id?'Edit Client':'New Client'}</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fr2"><div class="fg"><label>Name *</label><input id="cln" value="${c?.name||''}" placeholder="Client name"/></div><div class="fg"><label>Phone</label><input id="clp" value="${c?.phone||''}" placeholder="204-xxx-xxxx"/></div></div>
+    <div class="fg"><label>Address</label><input id="cla" value="${c?.address||''}" placeholder="Street address, city"/></div>
+    <div class="fr2"><div class="fg"><label>Contact Person</label><input id="clc" value="${c?.contact||''}" placeholder="Primary contact"/></div><div class="fg"><label>Email</label><input id="cle" value="${c?.email||''}" placeholder="email@example.com"/></div></div>
+    <div class="fg"><label>Notes</label><textarea id="clno" placeholder="Any notes">${c?.notes||''}</textarea></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svClient(${id||'null'})">${id?'Save Changes':'Add Client'}</button></div></div>`);
+}
+async function svClient(id){
+  const d={name:$('cln').value.trim(),phone:$('clp').value,address:$('cla').value,contact:$('clc').value,email:$('cle').value,notes:$('clno').value};
+  if(!d.name){toast('Name required','err');return;}
+  if(id){await patch('/api/clients/'+id,d);}else{await post('/api/clients',d);}
+  closeModal();toast(id?'Client updated':'Client added');rClients();
+}
+// ── QUOTES ──
+async function rQuotes(){
+  const quotes=await get('/api/quotes');
+  $('tactions').innerHTML=`<button class="btn bp bsm" onclick="nav('quote-edit')">New Quote</button>`;
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Quotes (${quotes.length})</h2></div><div class="tw"><table><thead><tr><th>Quote #</th><th>Client</th><th>Rep</th><th>Items</th><th>MSRP</th><th>Total</th><th>Paid</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody>${quotes.length?quotes.map(q=>{
+    const paid=q.amount_paid||0;const bal=q.total-paid;
+    return`<tr><td><a style="color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none" onclick="nav('quote-edit',${q.id})">${q.quote_number}</a></td><td><strong>${q.client_name||'—'}</strong></td><td class="muted">${q.rep_name||'—'}</td><td class="muted">${q.items?.length||0}</td><td class="mono">$${fn(q.subtotal,2)}</td><td class="mono"><strong>$${fn(q.total,2)}</strong></td><td class="mono" style="color:${bal>0?'var(--amber)':'var(--green)'}">${paid>0?'$'+fn(paid,2):'—'}</td><td>${qb(q.status)}</td><td class="muted">${fd(q.created_at)}</td><td style="display:flex;gap:4px"><button class="btn bsec bxs" onclick="nav('quote-edit',${q.id})">Edit</button>${can('owner','admin')&&q.status==='accepted'?`<button class="btn bs bxs" onclick="cvtQ(${q.id})">Convert to Job</button>`:''} ${can('owner','admin')&&q.status==='draft'?`<button class="btn bsec bxs" onclick="uQ(${q.id},'sent')">Mark Sent</button>`:''} ${q.status==='sent'?`<button class="btn bs bxs" onclick="uQ(${q.id},'accepted')">Accept</button>`:''}<button class="btn bg bxs" onclick="printQuote(${q.id})">Print</button><button class="btn bg bxs" onclick="downloadPDF(${q.id},'quote')">PDF</button></td></tr>`;
+  }).join(''):emp('No quotes yet','Create a quote for a client')}</tbody></table></div></div>`;
+}
+async function uQ(id,s){await patch('/api/quotes/'+id,{status:s});toast('Quote updated');rQuotes();}
+async function cvtQ(id){const r=await post('/api/quotes/'+id+'/convert');toast('Converted to job '+r.job_number);nav('job-detail',r.job_id);}
+
+// ── QUOTE BUILDER (full page) ──
+let _qb={items:[],editing:null};
+async function rQuoteBuilder(editId){
+  const clients=await get('/api/clients');
+  let q=null;
+  if(editId){
+    q=await get('/api/quotes/'+editId);
+    _qb.items=(q.items||[]).map(it=>({location:it.location||'',blind_type:it.blind_type||'Zebra',fabric_code:it.fabric_code||it.fabric_id||'',hc_custom:it.hc_custom||'',cassette_colour:it.cassette_colour||'',width_in:it.width_in||0,width_frac:it.width_frac||0,length_in:it.length_in||0,length_frac:it.length_frac||0,control_type:it.control_type||'',lr_side:it.lr_side||'',mount_type:it.mount_type||'',qty:it.qty||1,unit_price:it.unit_price||0,discount_pct:it.discount_pct||0}));
+    _qb.editing=editId;
+  }else{
+    _qb.items=[{location:'',blind_type:'Zebra',fabric_code:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',mount_type:'in',qty:1,unit_price:0,discount_pct:0}];
+    _qb.editing=null;
+  }
+  $('ptitle').textContent=editId?'Edit Quote — '+(q?.quote_number||''):'New Quote';
+  $('tactions').innerHTML=`<button class="btn bsec bsm" onclick="nav('quotes')">Back to Quotes</button>`;
+
+  const co=clients.map(c=>`<option value="${c.id}" ${q&&q.client_id==c.id?'selected':''}>${c.name}${c.address?' — '+c.address:''}</option>`).join('');
+
+  $('content').innerHTML=`
+  <div class="card"><div style="padding:16px 18px">
+    <div class="fss" style="margin-top:0">Basic Information</div>
+    <div class="fg"><label>Customer *</label><select id="qb_client"><option value="">Select customer...</option>${co}</select></div>
+    <div class="fr2">
+      <div class="fg"><label>Notes to Customer</label><textarea id="qb_cnotes" rows="3" placeholder="Thank you for your business!">${q?.customer_notes||'Thank you for your business!'}</textarea></div>
+      <div class="fg"><label>Terms &amp; Conditions</label><textarea id="qb_terms" rows="3" placeholder="Payment due within 30 days.">${q?.terms||'Payment due within 30 days.'}</textarea></div>
+    </div>
+  </div></div>
+
+  <div class="card"><div class="ch"><h2>Line Items <span class="badge bbl" id="qb_count">${_qb.items.length}</span></h2></div>
+    <div class="qb-table-wrap" style="overflow-x:auto;font-size:12px;padding:0 0 8px 0">
+      <table style="min-width:1300px">
+      <thead><tr>
+        <th style="width:30px">#</th><th>Location *</th><th>Type</th><th style="min-width:180px">Fabric Code *</th><th>Case</th>
+        <th>Width *</th><th>Height *</th>
+        <th>Control</th><th>LR</th><th>Mount</th>
+        <th>Qty *</th><th>Price *</th><th>Discount %</th><th>Line Total</th><th style="width:60px"></th>
+      </tr></thead>
+      <tbody id="qb_tbody"></tbody>
+      </table>
+    </div>
+    <div class="qb-cards" id="qb_cards"></div>
+    <div style="text-align:center;padding:8px 0 14px">
+      <button class="btn bsec bsm" onclick="qbAddRow()" style="min-height:44px;padding:10px 20px">+ Add Another Item</button>
+    </div>
+  </div>
+
+  <div class="qb-adj" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card"><div style="padding:16px 18px">
+      <div class="fss" style="margin-top:0">Adjustments</div>
+      <div class="fr2">
+        <div class="fg"><label>Discount (%)</label><input type="number" id="qb_disc" value="${q?.discount_pct||0}" min="0" max="100" step="0.5" onchange="qbCalcTotals()"/></div>
+        <div class="fg"><label>Discount Reason (Optional)</label><input id="qb_dreason" value="${q?.discount_reason||''}" placeholder="e.g., Seasonal discount"/></div>
+      </div>
+      <div class="fr2">
+        <div class="fg"><label>Markup ($)</label><input type="number" id="qb_markup" value="${q?.markup||0}" step="0.01" onchange="qbCalcTotals()"/><div style="font-size:10px;color:var(--text3);margin-top:2px">Added to MSRP before discount</div></div>
+        <div class="fg"><label>Upgrades/Accessories ($)</label><input type="number" id="qb_upgrades" value="${q?.upgrades||0}" step="0.01" onchange="qbCalcTotals()"/><div style="font-size:10px;color:var(--text3);margin-top:2px">Added after discount, before tax</div></div>
+      </div>
+      <div class="fg"><label>Amount Paid ($)</label><input type="number" id="qb_paid" value="${q?.amount_paid||0}" step="0.01" onchange="qbCalcTotals()"/><div style="font-size:10px;color:var(--text3);margin-top:2px">Status auto-updates based on payment</div></div>
+      <div style="margin-top:10px"><label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="qb_hide" ${q?.hide_prices?'checked':''}/> Hide unit prices and line totals on PDF <span style="font-size:10px;color:var(--text3)">(The final total will still be shown)</span></label></div>
+    </div></div>
+
+    <div class="card"><div style="padding:16px 18px">
+      <div class="fss" style="margin-top:0">Invoice Summary</div>
+      <div id="qb_summary" style="font-size:14px;line-height:2.2"></div>
+    </div></div>
+  </div>
+
+  <div class="qb-actions" style="display:flex;justify-content:flex-end;gap:8px;padding-bottom:20px">
+    <button class="btn bsec" onclick="nav('quotes')">Cancel</button>
+    ${editId?`<button class="btn bsec" onclick="printQuote(${editId})">Print Quote</button>
+    <button class="btn bsec" onclick="downloadPDF(${editId},'quote')">Download Quote PDF</button>
+    <button class="btn bsec" onclick="downloadPDF(${editId},'invoice')">Download Invoice PDF</button>`:''}
+    <button class="btn bp" style="padding:10px 24px;font-size:14px" onclick="qbSave()">${editId?'Save Changes':'Create Quote'}</button>
+  </div>`;
+
+  qbRenderRows();
+  qbCalcTotals();
+}
+
+function qbFabricCell(i,r){
+  if(r.blind_type==='Honeycomb'){
+    return`<input value="${r.hc_custom||''}" onchange="qbU(${i},'hc_custom',this.value)" maxlength="10" placeholder="Custom code" style="width:100px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"/>`;
+  }
+  const cat=r.blind_type==='Double Roller'?'Roller':r.blind_type;
+  return`<select onchange="qbU(${i},'fabric_code',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;max-width:200px">${fabOptsByCat(cat,r.fabric_code)}</select>`;
+}
+function qbRenderRows(){
+  const fo=FRACS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  $('qb_tbody').innerHTML=_qb.items.map((r,i)=>{
+    const lt=(r.unit_price||0)*(r.qty||1);
+    const ld=lt*((r.discount_pct||0)/100);
+    const lineTotal=lt-ld;
+    return`<tr>
+      <td class="muted">${i+1}</td>
+      <td><input value="${r.location||''}" onchange="qbU(${i},'location',this.value)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"/></td>
+      <td><select onchange="qbU(${i},'blind_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+        ${BLIND_TYPES.map(t=>`<option ${r.blind_type===t?'selected':''}>${t}</option>`).join('')}
+      </select></td>
+      <td>${qbFabricCell(i,r)}</td>
+      <td><select onchange="qbU(${i},'cassette_colour',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+        ${['White','Black','Grey','Silver','Mill'].map(c=>`<option ${r.cassette_colour===c?'selected':''}>${c}</option>`).join('')}
+      </select></td>
+      <td style="white-space:nowrap">
+        <input type="number" value="${r.width_in}" onchange="qbU(${i},'width_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:40px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center"/>
+        <select onchange="qbU(${i},'width_frac',parseFloat(this.value)||0);qbCalcTotals()" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;width:50px">${fo.replace(`value="${r.width_frac}"`,`value="${r.width_frac}" selected`)}</select>
+      </td>
+      <td style="white-space:nowrap">
+        <input type="number" value="${r.length_in}" onchange="qbU(${i},'length_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:40px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center"/>
+        <select onchange="qbU(${i},'length_frac',parseFloat(this.value)||0);qbCalcTotals()" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;width:50px">${fo.replace(`value="${r.length_frac}"`,`value="${r.length_frac}" selected`)}</select>
+      </td>
+      <td><select onchange="qbU(${i},'control_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+        ${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.']].map(([v,l])=>`<option value="${v}" ${r.control_type===v?'selected':''}>${l}</option>`).join('')}
+      </select></td>
+      <td><select onchange="qbU(${i},'lr_side',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+        <option value="R" ${r.lr_side==='R'?'selected':''}>R</option><option value="L" ${r.lr_side==='L'?'selected':''}>L</option>
+      </select></td>
+      <td><select onchange="qbU(${i},'mount_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+        <option value="in" ${r.mount_type==='in'?'selected':''}>Inside</option><option value="out" ${r.mount_type==='out'?'selected':''}>Outside</option>
+      </select></td>
+      <td><input type="number" value="${r.qty||1}" min="1" onchange="qbU(${i},'qty',parseInt(this.value)||1);qbCalcTotals()" style="width:40px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center"/></td>
+      <td><input type="number" value="${fn(r.unit_price,2)}" step="0.01" onchange="qbU(${i},'unit_price',parseFloat(this.value)||0);qbCalcTotals()" style="width:70px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px"/></td>
+      <td><input type="number" value="${fn(r.discount_pct,2)}" min="0" max="100" step="0.5" onchange="qbU(${i},'discount_pct',parseFloat(this.value)||0);qbCalcTotals()" style="width:50px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center"/></td>
+      <td class="mono" style="font-weight:700;color:var(--accent)">$${fn(lineTotal,2)}</td>
+      <td style="display:flex;gap:2px">
+        <button class="btn bg bxs" onclick="qbDupRow(${i})" title="Duplicate" style="padding:2px 6px;font-size:11px">Copy</button>
+        <button class="btn bg bxs" style="color:var(--red);padding:2px 6px" onclick="qbDelRow(${i})" title="Delete">X</button>
+      </td>
+    </tr>`;
+  }).join('');
+  $('qb_count').textContent=_qb.items.length;
+  qbRenderCards();
+}
+function qbFabricCardCell(i,r){
+  if(r.blind_type==='Honeycomb'){
+    return`<div class="qb-card-field"><label>Custom Code</label><input value="${r.hc_custom||''}" onchange="qbU(${i},'hc_custom',this.value)" maxlength="10" placeholder="10 char max"/></div>`;
+  }
+  const cat=r.blind_type==='Double Roller'?'Roller':r.blind_type;
+  return`<div class="qb-card-field full"><label>Fabric Code</label><select onchange="qbU(${i},'fabric_code',this.value)">${fabOptsByCat(cat,r.fabric_code)}</select></div>`;
+}
+function qbRenderCards(){
+  const el=$('qb_cards');if(!el)return;
+  const fo=FRACS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  el.innerHTML=_qb.items.map((r,i)=>{
+    const lt=(r.unit_price||0)*(r.qty||1);
+    const ld=lt*((r.discount_pct||0)/100);
+    const lineTotal=lt-ld;
+    return`<div class="qb-card">
+      <div class="qb-card-head">
+        <strong>Item ${i+1}${r.location?' — '+r.location:''}${r.fabric_code?' ('+r.fabric_code+')':''}</strong>
+        <div class="qb-card-actions">
+          <button class="btn bg bxs" onclick="qbDupRow(${i})">Copy</button>
+          <button class="btn bg bxs" style="color:var(--red)" onclick="qbDelRow(${i})">X</button>
+        </div>
+      </div>
+      <div class="qb-card-grid">
+        <div class="qb-card-field full"><label>Location</label><input value="${r.location||''}" onchange="qbU(${i},'location',this.value)"/></div>
+        <div class="qb-card-field"><label>Type</label><select onchange="qbU(${i},'blind_type',this.value)">
+          ${BLIND_TYPES.map(t=>`<option ${r.blind_type===t?'selected':''}>${t}</option>`).join('')}
+        </select></div>
+        ${qbFabricCardCell(i,r)}
+        <div class="qb-card-field"><label>Cassette</label><select onchange="qbU(${i},'cassette_colour',this.value)">
+          ${['White','Black','Grey','Silver','Mill'].map(c=>`<option ${r.cassette_colour===c?'selected':''}>${c}</option>`).join('')}
+        </select></div>
+        <div class="qb-card-field"><label>Control</label><select onchange="qbU(${i},'control_type',this.value)">
+          ${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.']].map(([v,l])=>`<option value="${v}" ${r.control_type===v?'selected':''}>${l}</option>`).join('')}
+        </select></div>
+        <div class="qb-card-field"><label>Width</label>
+          <div style="display:flex;gap:4px">
+            <input type="number" value="${r.width_in}" onchange="qbU(${i},'width_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:50%"/>
+            <select onchange="qbU(${i},'width_frac',parseFloat(this.value)||0);qbCalcTotals()" style="width:50%">${fo.replace(`value="${r.width_frac}"`,`value="${r.width_frac}" selected`)}</select>
+          </div>
+        </div>
+        <div class="qb-card-field"><label>Height</label>
+          <div style="display:flex;gap:4px">
+            <input type="number" value="${r.length_in}" onchange="qbU(${i},'length_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:50%"/>
+            <select onchange="qbU(${i},'length_frac',parseFloat(this.value)||0);qbCalcTotals()" style="width:50%">${fo.replace(`value="${r.length_frac}"`,`value="${r.length_frac}" selected`)}</select>
+          </div>
+        </div>
+        <div class="qb-card-field"><label>L/R</label><select onchange="qbU(${i},'lr_side',this.value)">
+          <option value="R" ${r.lr_side==='R'?'selected':''}>Right</option><option value="L" ${r.lr_side==='L'?'selected':''}>Left</option>
+        </select></div>
+        <div class="qb-card-field"><label>Mount</label><select onchange="qbU(${i},'mount_type',this.value)">
+          <option value="in" ${r.mount_type==='in'?'selected':''}>Inside</option><option value="out" ${r.mount_type==='out'?'selected':''}>Outside</option>
+        </select></div>
+        <div class="qb-card-field"><label>Qty</label><input type="number" value="${r.qty||1}" min="1" onchange="qbU(${i},'qty',parseInt(this.value)||1);qbCalcTotals()"/></div>
+        <div class="qb-card-field"><label>Price</label><input type="number" value="${fn(r.unit_price,2)}" step="0.01" onchange="qbU(${i},'unit_price',parseFloat(this.value)||0);qbCalcTotals()"/></div>
+        <div class="qb-card-field"><label>Discount %</label><input type="number" value="${fn(r.discount_pct,2)}" min="0" max="100" step="0.5" onchange="qbU(${i},'discount_pct',parseFloat(this.value)||0);qbCalcTotals()"/></div>
+      </div>
+      <div class="qb-card-total"><span>Line Total</span><strong>$${fn(lineTotal,2)}</strong></div>
+    </div>`;
+  }).join('');
+}
+function qbU(i,key,val){
+  _qb.items[i][key]=val;
+  // When type changes, reset fabric_code and re-render for new dropdown options
+  if(key==='blind_type'){
+    _qb.items[i].fabric_code='';
+    _qb.items[i].hc_custom='';
+    // Double Roller: auto-add a paired row if not already there
+    if(val==='Double Roller'){
+      const r=_qb.items[i];
+      const next=_qb.items[i+1];
+      if(!next||next.blind_type!=='Double Roller'||next.location!==r.location+'(2)'){
+        _qb.items.splice(i+1,0,{...r,blind_type:'Double Roller',fabric_code:'',location:(r.location||'')+'(2)'});
+      }
+    }
+    qbRenderRows();qbCalcTotals();return;
+  }
+  // Auto-price from lookup table when width or height changes (same prices for all types)
+  if(['width_in','width_frac','length_in','length_frac'].includes(key)){
+    const r=_qb.items[i];
+    if(r.width_in>0&&r.length_in>0){
+      const p=priceLookup(r.width_in,r.width_frac,r.length_in,r.length_frac);
+      if(p>0){r.unit_price=p;qbRenderRows();}
+    }
+  }
+}
+function qbAddRow(){
+  _qb.items.push({location:'',blind_type:'Zebra',fabric_code:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',mount_type:'in',qty:1,unit_price:0,discount_pct:0});
+  qbRenderRows();qbCalcTotals();
+}
+function qbDupRow(i){_qb.items.splice(i+1,0,{..._qb.items[i]});qbRenderRows();qbCalcTotals();}
+function qbDelRow(i){if(_qb.items.length<=1){toast('Need at least one item','err');return;}_qb.items.splice(i,1);qbRenderRows();qbCalcTotals();}
+function qbCalcTotals(){
+  const msrp=_qb.items.reduce((s,r)=>{const lt=(r.unit_price||0)*(r.qty||1);return s+(lt-lt*((r.discount_pct||0)/100));},0);
+  const mk=parseFloat($('qb_markup')?.value)||0;
+  const disc=parseFloat($('qb_disc')?.value)||0;
+  const upg=parseFloat($('qb_upgrades')?.value)||0;
+  const tax=5;
+  const beforeDisc=msrp+mk;
+  const afterDisc=beforeDisc*(1-disc/100);
+  const beforeTax=afterDisc+upg;
+  const taxAmt=beforeTax*(tax/100);
+  const total=beforeTax+taxAmt;
+  const paid=parseFloat($('qb_paid')?.value)||0;
+  const balance=total-paid;
+  $('qb_summary').innerHTML=`
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>MSRP:</span><span class="mono">$${fn(msrp,2)}</span></div>
+    ${mk?`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>Markup:</span><span class="mono">+$${fn(mk,2)}</span></div>`:''}
+    ${disc?`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>Discount (${disc}%):</span><span class="mono" style="color:var(--red)">-$${fn(beforeDisc*disc/100,2)}</span></div>`:''}
+    ${upg?`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>Upgrades/Accessories:</span><span class="mono">+$${fn(upg,2)}</span></div>`:''}
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>Tax (${tax}%):</span><span class="mono">$${fn(taxAmt,2)}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:18px;font-weight:800"><span>Total:</span><span class="mono" style="color:var(--accent)">$${fn(total,2)}</span></div>
+    ${paid>0?`<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--border)"><span>Paid:</span><span class="mono" style="color:var(--green)">$${fn(paid,2)}</span></div><div style="display:flex;justify-content:space-between;padding:4px 0;font-weight:700"><span>Balance:</span><span class="mono" style="color:${balance>0?'var(--amber)':'var(--green)'}">$${fn(balance,2)}</span></div>`:''}`;
+}
+async function qbSave(){
+  const cid=$('qb_client').value;
+  if(!cid){toast('Select a customer','err');return;}
+  if(!_qb.items.some(r=>r.location||r.unit_price)){toast('Add at least one line item','err');return;}
+  const payload={
+    client_id:parseInt(cid),items:_qb.items,
+    customer_notes:$('qb_cnotes').value, terms:$('qb_terms').value,
+    discount_pct:parseFloat($('qb_disc').value)||0,tax_pct:5,
+    markup:parseFloat($('qb_markup').value)||0,
+    upgrades:parseFloat($('qb_upgrades').value)||0,
+    amount_paid:parseFloat($('qb_paid').value)||0,
+    discount_reason:$('qb_dreason').value,
+    hide_prices:$('qb_hide').checked
+  };
+  try{
+    if(_qb.editing){await api('PUT','/api/quotes/'+_qb.editing,payload);toast('Quote updated');}
+    else{await post('/api/quotes',payload);toast('Quote created');}
+    nav('quotes');
+  }catch(e){toast(e.message,'err');}
+}
+
+// ── PRINT QUOTE ──
+async function printQuote(id){
+  const q=await get('/api/quotes/'+id);
+  const hide=q.hide_prices;
+  const msrp=q.subtotal||0;
+  const mk=q.markup||0;
+  const disc=q.discount_pct||0;
+  const upg=q.upgrades||0;
+  const tax=q.tax_pct||5;
+  const total=q.total||0;
+  const paid=q.amount_paid||0;
+  const balance=total-paid;
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><title>Quote ${q.quote_number}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+body{padding:30px;background:#fff;font-size:12px;color:#000;}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #1e293b;}
+.ht{font-size:22px;font-weight:800;color:#1e293b;}
+.hs{font-size:11px;color:#555;margin-top:2px;}
+.qn{display:inline-block;background:#1e293b;color:#fff;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:700;margin-top:6px;}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+.ib{border:1px solid #e2e8f0;border-radius:6px;padding:14px;}
+.il{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:6px;}
+.iv{font-size:13px;font-weight:600;line-height:1.6;}
+table{width:100%;border-collapse:collapse;margin-bottom:20px;}
+th{background:#1e293b;color:#fff;padding:8px 10px;font-size:10px;text-align:left;text-transform:uppercase;letter-spacing:.4px;}
+td{padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;}
+tr:nth-child(even) td{background:#f9fafb;}
+.mono{font-family:'SF Mono','Fira Code',monospace;}
+.sum{margin-left:auto;width:320px;border:2px solid #1e293b;border-radius:8px;overflow:hidden;}
+.sr{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #e2e8f0;font-size:12px;}
+.sr:last-child{border-bottom:none;}
+.st{background:#1e293b;color:#fff;font-weight:800;font-size:14px;padding:10px 14px;}
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;padding-top:14px;border-top:1px solid #ddd;}
+.nb{font-size:11px;line-height:1.6;color:#374151;}
+.nl{font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px;}
+.ft{margin-top:20px;padding-top:10px;border-top:1px solid #ddd;font-size:9px;color:#888;display:flex;justify-content:space-between;}
+@media print{body{padding:16px;}}
+</style></head><body>
+<div class="hdr">
+  <div>
+    <div class="ht">Soho Blinds</div>
+    <div class="hs">Window Covering Solutions</div>
+    <div class="qn">${q.quote_number}</div>
+  </div>
+  <div style="text-align:right;font-size:12px;line-height:1.7">
+    <strong style="font-size:14px">QUOTE</strong><br>
+    Date: ${fd(q.created_at)}<br>
+    ${q.valid_until?'Valid Until: '+fd(q.valid_until)+'<br>':''}
+    Rep: ${q.rep_name||'—'}
+  </div>
+</div>
+<div class="info">
+  <div class="ib"><div class="il">Customer</div><div class="iv">${q.client_name||'—'}<br>${q.client_address||''}<br>${q.client_phone||''}${q.client_email?' | '+q.client_email:''}</div></div>
+  <div class="ib"><div class="il">Status</div><div class="iv">${(q.status||'draft').toUpperCase()}</div>
+  ${paid>0?`<div style="margin-top:8px"><div class="il">Payment</div><div class="iv">Paid: $${fn(paid,2)} | Balance: $${fn(balance,2)}</div></div>`:''}</div>
+</div>
+<table><thead><tr><th>#</th><th>Location</th><th>Type</th><th>Fabric</th><th>Size</th><th>Control</th><th>Mount</th><th>Qty</th>${hide?'':`<th>Unit Price</th><th>Disc%</th><th>Line Total</th>`}</tr></thead>
+<tbody>${(q.items||[]).map((it,i)=>{
+  const lt=(it.unit_price||0)*(it.qty||1);const ld=lt*((it.discount_pct||0)/100);
+  const fc=it.fabric_code||it.hc_custom||it.fabric_alias||it.catalogue_no||'—';
+  const fab=fabByCode(fc);
+  const fabDisp=fab?fc+' ('+fab.name+' '+fab.color+')':fc;
+  return`<tr><td>${i+1}</td><td><strong>${it.location||'—'}</strong></td><td>${it.blind_type||'—'}</td><td>${fabDisp}</td><td class="mono">${ms(it.width_in,it.width_frac)} x ${ms(it.length_in,it.length_frac)}</td><td>${it.control_type||'—'} ${it.lr_side||''}</td><td>${it.mount_type==='in'?'Inside':'Outside'}</td><td>${it.qty||1}</td>${hide?'':`<td class="mono">$${fn(it.unit_price,2)}</td><td>${it.discount_pct?it.discount_pct+'%':'—'}</td><td class="mono"><strong>$${fn(lt-ld,2)}</strong></td>`}</tr>`;
+}).join('')}</tbody></table>
+<div style="display:flex;justify-content:flex-end">
+<div class="sum">
+  <div class="sr"><span>MSRP:</span><span class="mono">$${fn(msrp,2)}</span></div>
+  ${mk?`<div class="sr"><span>Markup:</span><span class="mono">+$${fn(mk,2)}</span></div>`:''}
+  ${disc?`<div class="sr"><span>Discount (${disc}%):</span><span class="mono" style="color:#dc2626">-$${fn((msrp+mk)*disc/100,2)}</span></div>`:''}
+  ${upg?`<div class="sr"><span>Upgrades/Accessories:</span><span class="mono">+$${fn(upg,2)}</span></div>`:''}
+  <div class="sr"><span>Tax (${tax}%):</span><span class="mono">$${fn(total-total/(1+tax/100),2)}</span></div>
+  <div class="sr st"><span>Total:</span><span class="mono">$${fn(total,2)}</span></div>
+  ${paid>0?`<div class="sr" style="background:#f0fdf4"><span>Paid:</span><span class="mono" style="color:#16a34a">$${fn(paid,2)}</span></div><div class="sr" style="font-weight:700"><span>Balance Due:</span><span class="mono" style="color:${balance>0?'#d97706':'#16a34a'}">$${fn(balance,2)}</span></div>`:''}
+</div></div>
+${q.customer_notes||q.terms?`<div class="notes">${q.customer_notes?`<div><div class="nl">Notes</div><div class="nb">${q.customer_notes}</div></div>`:''}${q.terms?`<div><div class="nl">Terms &amp; Conditions</div><div class="nb">${q.terms}</div></div>`:''}</div>`:''}
+<div class="ft"><span>${q.quote_number} — ${q.client_name||''}</span><span>${(q.items||[]).length} item(s)</span><span>Printed: ${new Date().toLocaleString()}</span></div>
+<script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close();
+}
+// ── DOWNLOAD PDF ──
+function downloadPDF(id, type){
+  const url='/api/quotes/'+id+'/pdf?type='+(type||'quote');
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='';
+  // Add auth header via fetch
+  fetch(url,{headers:{'Authorization':'Bearer '+TOKEN}})
+    .then(r=>{if(!r.ok)throw new Error('PDF generation failed');return r.blob();})
+    .then(blob=>{
+      const u=URL.createObjectURL(blob);
+      a.href=u;a.download=(type==='invoice'?'Invoice':'Quote')+'-'+id+'.pdf';
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      URL.revokeObjectURL(u);
+      toast((type==='invoice'?'Invoice':'Quote')+' PDF downloaded');
+    })
+    .catch(e=>toast(e.message,'err'));
+}
+
+// ── FABRIC ──
+async function rFabric(){
+  _fabs=await get('/api/fabrics');
+  const ro=ME.role==='sales'||ME.role==='admin';
+  $('tactions').innerHTML=`<button class="btn bsec bsm" onclick="showFT()">Table</button><button class="btn bsec bsm" onclick="showFS()">Swatches</button>${!ro?`<button class="btn bsec bsm" onclick="syncCatalog()">Sync Catalog</button><button class="btn bp bsm" onclick="mAddFab()">Add Fabric</button>`:''}`;
+  showFT();
+}
+function fabCatInfo(code){const f=fabByCode(code);return f?{type:f.cat,filter:f.filter,slat:f.slat}:{type:'—',filter:'—',slat:''};}
+function showFT(){
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Fabric Inventory (${_fabs.length})</h2></div><div class="tw"><table><thead><tr><th>Colour</th><th>Code</th><th>Type</th><th>Series</th><th>Name</th><th>Filter</th><th>Slat</th><th>Rolls</th><th>Total (m)</th><th>Used (m)</th><th>Remaining</th><th>Status</th><th>Usage</th><th></th></tr></thead><tbody>${_fabs.map(f=>{const ci=fabCatInfo(f.catalogue_no);return`<tr><td><div style="width:26px;height:26px;border-radius:5px;background:${f.colour_hex};border:1px solid var(--border)"></div></td><td><span class="mono" style="font-weight:700">${f.catalogue_no}</span></td><td><span class="badge ${ci.type==='Zebra'?'bgr':ci.type==='Roller'?'bbl':'bg'}">${ci.type}</span></td><td class="muted">${f.series||'—'}</td><td><strong>${f.alias}</strong></td><td class="muted" style="font-size:11px">${ci.filter||'—'}</td><td class="muted">${ci.slat||f.slat_size+'"'||'—'}</td><td class="muted">${f.roll_qty}</td><td>${fn(f.total_meters,1)}</td><td class="muted">${fn(f.used_meters,1)}</td><td><strong>${fn(f.remaining,1)}</strong></td><td>${stBadge(f.remaining)}</td><td style="min-width:100px"><div class="stb"><div class="stbf" style="width:${f.total_meters>0?Math.min(100,f.used_meters/f.total_meters*100):0}%;background:${f.remaining<20?'var(--red)':f.remaining<50?'var(--amber)':'var(--green)'}"></div></div><span style="font-size:10px;color:var(--text3)">${f.total_meters>0?Math.round(f.used_meters/f.total_meters*100):0}%</span></td><td>${can('owner','admin','warehouse')?`<button class="btn bg bxs" onclick="mEditFab(${f.id})">Edit</button>`:''}</td></tr>`;}).join('')}</tbody></table></div></div>`;
+}
+function showFS(){
+  $('content').innerHTML=`<div class="swg">${_fabs.map(f=>{const ci=fabCatInfo(f.catalogue_no);return`<div class="swc" ${can('owner','admin','warehouse')?`onclick="mEditFab(${f.id})"`:''} ><div class="swt" style="background:${f.colour_hex}"><div class="swp">${fn(f.remaining,1)}m</div></div><div class="swb"><div class="swn">${f.alias}</div><div class="swco">${f.catalogue_no} · ${ci.type} · ${f.series||'—'}</div><div style="font-size:10px;color:var(--text3);margin-top:2px">${ci.filter||''} ${ci.slat?'· '+ci.slat:''}</div><div style="margin-top:6px">${stBadge(f.remaining)}</div></div></div>`;}).join('')}</div>`;
+}
+function mAddFab(){
+  const catOpts='<option value="">— Select from catalog —</option>'+FABRIC_CAT.map(f=>`<option value="${f.code}">${fabLabel(f)}</option>`).join('');
+  openModal(`<div class="md mmd"><div class="mh"><h3>Add Fabric</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fg"><label>Pick from Catalog</label><select id="afcat" onchange="fillFromCat()" style="font-size:13px">${catOpts}</select></div>
+    <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px">
+    <div class="fr2"><div class="fg"><label>Catalogue # *</label><input id="afc" placeholder="Z3A"/></div><div class="fg"><label>Series</label><input id="afse" placeholder="Rossini"/></div><div class="fg"><label>Name *</label><input id="afn" placeholder="Matte Ivory"/></div><div class="fg"><label>Colour</label><input type="color" id="afh" value="#d4c5a9"/></div><div class="fg"><label>Slat Size (inches)</label><input type="number" id="afsl" value="3" step="0.125"/></div><div class="fg"><label>Roll Qty</label><input type="number" id="afr" value="0"/></div><div class="fg"><label>Total Meters</label><input type="number" id="afm" value="0" step="0.01"/></div></div>
+    </div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svFab()">Add</button></div></div>`);
+}
+function fillFromCat(){
+  const code=$('afcat').value;if(!code)return;
+  const f=fabByCode(code);if(!f)return;
+  $('afc').value=f.code;
+  $('afse').value=f.name;
+  $('afn').value=f.name+' '+f.color+(f.filter?' — '+f.filter:'');
+  $('afsl').value=parseFloat(f.slat)||3;
+}
+async function syncCatalog(){
+  const existing=new Set(_fabs.map(f=>f.catalogue_no));
+  const missing=FABRIC_CAT.filter(f=>!existing.has(f.code));
+  if(!missing.length){toast('All catalog items already in inventory');return;}
+  if(!confirm(`Add ${missing.length} missing catalog items to inventory?`))return;
+  let added=0;
+  for(const f of missing){
+    try{
+      await post('/api/fabrics',{
+        catalogue_no:f.code,
+        series:f.name,
+        alias:f.name+' '+f.color+(f.filter?' — '+f.filter:''),
+        colour_hex:'#cccccc',
+        slat_size:parseFloat(f.slat)||3,
+        roll_qty:0,total_meters:0
+      });
+      added++;
+    }catch(e){console.error('Failed to add '+f.code,e);}
+  }
+  toast(added+' fabrics added from catalog');
+  rFabric();
+}
+async function svFab(){
+  const c=$('afc').value.trim(),n=$('afn').value.trim();if(!c||!n){toast('Code and name required','err');return;}
+  await post('/api/fabrics',{catalogue_no:c,series:$('afse').value,alias:n,colour_hex:$('afh').value,slat_size:parseFloat($('afsl').value)||3,roll_qty:parseInt($('afr').value)||0,total_meters:parseFloat($('afm').value)||0});
+  closeModal();toast('Fabric added');rFabric();
+}
+function mEditFab(id){
+  const f=_fabs.find(x=>x.id===id);if(!f)return;
+  openModal(`<div class="md msm"><div class="mh"><h3>Edit — ${f.catalogue_no}</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:8px"><div style="width:44px;height:44px;border-radius:8px;background:${f.colour_hex};border:1px solid var(--border)"></div><div><strong style="font-size:14px">${f.alias}</strong><br><span style="font-size:12px;color:var(--text2)">${f.catalogue_no} · ${f.series||'—'}</span><br><span style="margin-top:4px;display:inline-block">${stBadge(f.remaining)}</span></div></div>
+    <div class="fr2"><div class="fg"><label>Name</label><input id="efn" value="${f.alias}"/></div><div class="fg"><label>Colour</label><input type="color" id="efh" value="${f.colour_hex}"/></div><div class="fg"><label>Roll Qty</label><input type="number" id="efr" value="${f.roll_qty}"/></div><div class="fg"><label>Total Meters</label><input type="number" id="efm" value="${f.total_meters}" step="0.01"/></div></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svEFab(${id})">Save</button></div></div>`);
+}
+async function svEFab(id){await patch('/api/fabrics/'+id,{alias:$('efn').value,colour_hex:$('efh').value,roll_qty:parseInt($('efr').value),total_meters:parseFloat($('efm').value)});closeModal();toast('Updated');rFabric();}
+</script>
+<script>
+// ── HARDWARE ──
+async function rHardware(){
+  _hw=await get('/api/hardware');
+  $('tactions').innerHTML=`<button class="btn bp bsm" onclick="mAddHw()">Add Item</button>`;
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Hardware Inventory (${_hw.length})</h2></div><div class="tw"><table><thead><tr><th>Category</th><th>Code</th><th>Description</th><th>Unit</th><th>Total</th><th>Used</th><th>Remaining</th><th>Status</th><th>Usage</th><th></th></tr></thead><tbody>${_hw.map(h=>`<tr><td><span class="badge bbl">${h.category}</span></td><td><span class="mono">${h.item_code||'—'}</span></td><td>${h.description}</td><td class="muted">${h.unit}</td><td>${fn(h.total_qty,1)}</td><td class="muted">${fn(h.used_qty,1)}</td><td><strong>${fn(h.remaining,1)}</strong></td><td>${stBadge(h.remaining)}</td><td style="min-width:80px"><div class="stb"><div class="stbf" style="width:${h.total_qty>0?Math.min(100,h.used_qty/h.total_qty*100):0}%;background:var(--amber)"></div></div></td><td><button class="btn bg bxs" onclick="mAdjHw(${h.id})">Adjust</button></td></tr>`).join('')}</tbody></table></div></div>`;
+}
+function mAddHw(){
+  openModal(`<div class="md mmd"><div class="mh"><h3>Add Hardware Item</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fr2"><div class="fg"><label>Category *</label><input id="ahc" placeholder="Valance / Head Rail"/></div><div class="fg"><label>Item Code</label><input id="ahco" placeholder="F5TYY"/></div></div>
+    <div class="fg"><label>Description *</label><input id="ahd" placeholder="Full description and specifications"/></div>
+    <div class="fr2"><div class="fg"><label>Unit</label><select id="ahu"><option value="meters">Meters</option><option value="count">Count</option></select></div><div class="fg"><label>Initial Qty</label><input type="number" id="ahq" value="0" step="0.1"/></div></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svHw()">Add Item</button></div></div>`);
+}
+async function svHw(){
+  const c=$('ahc').value.trim(),d=$('ahd').value.trim();if(!c||!d){toast('Category and description required','err');return;}
+  await post('/api/hardware',{category:c,item_code:$('ahco').value,description:d,unit:$('ahu').value,total_qty:parseFloat($('ahq').value)||0});
+  closeModal();toast('Added');rHardware();
+}
+function mAdjHw(id){
+  const h=_hw.find(x=>x.id===id);if(!h)return;
+  openModal(`<div class="md msm"><div class="mh"><h3>Adjust — ${h.category}</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div style="padding:10px 12px;background:var(--bg);border-radius:7px;margin-bottom:14px;font-size:13px"><strong>${h.description}</strong><br><span style="font-size:12px;color:var(--text2);margin-top:4px;display:block">Remaining: ${fn(h.remaining,1)} ${h.unit} &nbsp; ${stBadge(h.remaining)}</span></div>
+    <div class="fg"><label>Total Qty (${h.unit})</label><input type="number" id="hqt" value="${h.total_qty}" step="0.1"/></div>
+    <div class="fg"><label>Used Qty (${h.unit})</label><input type="number" id="hqu" value="${h.used_qty}" step="0.1"/></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svAHw(${id})">Save</button></div></div>`);
+}
+async function svAHw(id){await patch('/api/hardware/'+id,{total_qty:parseFloat($('hqt').value),used_qty:parseFloat($('hqu').value)});closeModal();toast('Updated');rHardware();}
+
+// ── SHIPMENTS ──
+async function rShipments(){
+  const s=await get('/api/shipments');
+  $('tactions').innerHTML=`<button class="btn bp bsm" onclick="mNewShip()">Receive Shipment</button>`;
+  $('content').innerHTML=`<div class="sg" style="grid-template-columns:repeat(3,1fr)"><div class="sc"><div class="slb">Total Shipments</div><div class="sv">${s.length}</div></div><div class="sc"><div class="slb">This Month</div><div class="sv">${s.filter(x=>new Date(x.date_received)>new Date(Date.now()-30*864e5)).length}</div></div><div class="sc"><div class="slb">Suppliers</div><div class="sv">${new Set(s.map(x=>x.supplier)).size}</div></div></div><div class="card"><div class="ch"><h2>Shipment History</h2></div>${s.length?s.map(x=>`<div style="border-bottom:1px solid var(--border);padding:14px 18px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><strong style="font-size:14px">${x.supplier}</strong>${x.reference?` <span class="mono" style="font-size:12px;color:var(--text2)">${x.reference}</span>`:''}</div><span class="muted" style="font-size:12px">${fd(x.date_received)}</span></div><div style="display:flex;flex-wrap:wrap;gap:6px">${(x.items||[]).map(i=>`<div style="padding:4px 10px;border-radius:5px;border:1px solid var(--border);font-size:12px;display:flex;align-items:center;gap:7px"><span class="badge ${i.item_type==='fabric'?'bgr':'bbl'}">${i.item_type}</span><strong>${i.fabric_alias||i.hw_desc||'—'}</strong>${i.catalogue_no?`<span class="mono" style="font-size:10px">${i.catalogue_no}</span>`:''}<strong style="color:var(--accent)">+${i.qty_received}</strong></div>`).join('')}</div></div>`).join(''):`<div class="empty"><div class="et">No shipments recorded</div><div class="esb">Click "Receive Shipment" when materials arrive</div></div>`}</div>`;
+}
+async function mNewShip(){
+  if(!_fabs.length)_fabs=await get('/api/fabrics');if(!_hw.length)_hw=await get('/api/hardware');
+  let items=[];
+  function ri(){$('silist').innerHTML=items.length?`<div style="display:flex;flex-wrap:wrap;gap:6px">${items.map((it,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:4px 10px;background:var(--white);border:1px solid var(--border);border-radius:6px;font-size:12px"><span class="badge ${it.item_type==='fabric'?'bgr':'bbl'}">${it.item_type}</span><strong>${it.name}</strong> <strong style="color:var(--accent)">+${it.qty}</strong><button class="btn bg bxs" style="color:var(--red);padding:2px 5px" onclick="rsi(${i})">×</button></div>`).join('')}</div>`:`<span style="color:var(--text3);font-size:12px">No items added yet</span>`;}
+  openModal(`<div class="md mlg"><div class="mh"><h3>Receive Shipment</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fr2"><div class="fg"><label>Supplier *</label><input id="nss" placeholder="Supplier name"/></div><div class="fg"><label>Reference / PO #</label><input id="nsr" placeholder="PO-2026-001"/></div><div class="fg"><label>Date Received *</label><input type="date" id="nsd" value="${new Date().toISOString().split('T')[0]}"/></div><div class="fg"><label>Notes</label><input id="nsno" placeholder="Optional"/></div></div>
+    <div class="fss">Items Received</div>
+    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
+      <div class="fg" style="flex:0 0 110px"><label>Type</label><select id="sit" onchange="loadSI()"><option value="fabric">Fabric</option><option value="hardware">Hardware</option></select></div>
+      <div class="fg" style="flex:1;min-width:160px"><label>Item</label><select id="sii">${_fabs.map(f=>`<option value="${f.id}" data-n="${f.alias} (${f.catalogue_no})">${f.catalogue_no} — ${f.alias}</option>`).join('')}</select></div>
+      <div class="fg" style="flex:0 0 100px"><label>Qty</label><input type="number" id="siq" value="50" step="0.1"/></div>
+      <button class="btn bs bsm" onclick="asi()">Add</button>
+    </div>
+    <div id="silist" style="background:var(--bg);border-radius:7px;padding:10px;min-height:40px"></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svShip()">Save & Update Stock</button></div></div>`);
+  ri();
+  window.loadSI=()=>{const t=$('sit').value;$('sii').innerHTML=t==='fabric'?_fabs.map(f=>`<option value="${f.id}" data-n="${f.alias} (${f.catalogue_no})">${f.catalogue_no} — ${f.alias}</option>`).join(''):_hw.map(h=>`<option value="${h.id}" data-n="${h.description}">${h.category} — ${h.description}</option>`).join('');};
+  window.asi=()=>{const t=$('sit').value,sel=$('sii'),n=sel.selectedOptions[0]?.dataset.n||'?',id=parseInt(sel.value),q=parseFloat($('siq').value)||0;if(!q){toast('Enter qty','err');return;}items.push({item_type:t,item_id:id,name:n,qty_received:q,qty:q});ri();};
+  window.rsi=i=>{items.splice(i,1);ri();};
+  window.svShip=async()=>{const sup=$('nss').value.trim();if(!sup){toast('Supplier required','err');return;}if(!items.length){toast('Add at least one item','err');return;}await post('/api/shipments',{supplier:sup,reference:$('nsr').value,date_received:$('nsd').value,notes:$('nsno').value,items});closeModal();toast('Shipment recorded — stock updated');rShipments();};
+}
+
+// ── TRANSFERS ──
+async function rTransfers(){
+  const ts=await get('/api/transfers');
+  const pend=ts.filter(t=>t.status==='pending');
+  $('tactions').innerHTML=can('owner','admin','warehouse')?`<button class="btn bp bsm" onclick="mNewTrf()">New Transfer</button>`:'';
+  $('content').innerHTML=`<div class="sg" style="grid-template-columns:repeat(3,1fr)"><div class="sc"><div class="slb">Total Transfers</div><div class="sv">${ts.length}</div></div><div class="sc"><div class="slb">Pending</div><div class="sv">${pend.length}</div></div><div class="sc"><div class="slb">Delivered</div><div class="sv">${ts.filter(t=>t.status==='completed').length}</div></div></div>
+  ${pend.length?`<div class="card"><div class="ch"><h2>Pending Transfers</h2></div>${pend.map(t=>`<div style="border-bottom:1px solid var(--border);padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div><strong>${t.transfer_no}</strong><br><span style="font-size:11px;color:var(--text3)">${fd(t.created_at)}</span></div><div style="display:flex;align-items:center;gap:8px;flex:1">${lp(t.from_location)}<span style="color:var(--text3)">→</span>${lp(t.to_location)}</div><div style="font-size:12px;color:var(--text2)">${(t.items||[]).map(i=>`${i.item_name} × ${i.qty}`).join(', ')}</div>${t.job_number?`<span class="badge bbl">${t.job_number}</span>`:''}<div style="display:flex;gap:6px"><button class="btn bs bsm" onclick="cTrf(${t.id})">Mark Delivered</button><button class="btn bg bsm" style="color:var(--red)" onclick="dTrf(${t.id})">Delete</button></div></div>`).join('')}</div>`:``}
+  <div class="card"><div class="ch"><h2>All Transfers</h2></div><div class="tw"><table><thead><tr><th>Transfer #</th><th>Route</th><th>Items</th><th>Job</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>${ts.length?ts.map(t=>`<tr><td><strong>${t.transfer_no}</strong></td><td><div style="display:flex;align-items:center;gap:6px">${lp(t.from_location)}<span class="muted">→</span>${lp(t.to_location)}</div></td><td style="font-size:12px;color:var(--text2)">${(t.items||[]).map(i=>`${i.item_name} ×${i.qty}`).join(', ')}</td><td>${t.job_number?`<span class="badge bbl">${t.job_number}</span>`:'—'}</td><td class="muted">${fd(t.created_at)}</td><td>${t.status==='completed'?`<span class="badge bgr">Delivered</span>`:`<span class="badge bam">Pending</span>`}</td><td style="display:flex;gap:4px">${t.status==='pending'?`<button class="btn bs bxs" onclick="cTrf(${t.id})">Deliver</button>`:''}<button class="btn bg bxs" style="color:var(--red)" onclick="dTrf(${t.id})">Delete</button></td></tr>`).join(''):emp('No transfers yet','Move stock between Warehouse, Factory and Installer')}</tbody></table></div></div>`;
+}
+async function cTrf(id){await api('PATCH','/api/transfers/'+id+'/complete');toast('Transfer marked delivered');rTransfers();}
+async function dTrf(id){if(!confirm('Delete transfer?'))return;await del('/api/transfers/'+id);toast('Deleted');rTransfers();}
+async function mNewTrf(){
+  if(!_fabs.length)_fabs=await get('/api/fabrics');if(!_hw.length)_hw=await get('/api/hardware');
+  const jobs=await get('/api/jobs');let items=[];
+  function ri(){$('tilist').innerHTML=items.length?`<div style="display:flex;flex-wrap:wrap;gap:6px">${items.map((it,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:4px 10px;background:var(--white);border:1px solid var(--border);border-radius:6px;font-size:12px"><span class="badge ${it.item_type==='fabric'?'bgr':'bbl'}">${it.item_type}</span><strong>${it.item_name}</strong> ×${it.qty}<button class="btn bg bxs" style="color:var(--red);padding:2px 5px" onclick="rti(${i})">×</button></div>`).join('')}</div>`:`<span style="color:var(--text3);font-size:12px">No items added yet</span>`;}
+  openModal(`<div class="md mlg"><div class="mh"><h3>New Stock Transfer</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap">
+      <div class="fg" style="flex:1;min-width:130px"><label>From</label><select id="tff" style="font-weight:600">${LOCS.map(l=>`<option value="${l}" ${l==='Warehouse'?'selected':''}>${l}</option>`).join('')}</select></div>
+      <div style="font-size:22px;color:var(--text3);padding-top:18px">→</div>
+      <div class="fg" style="flex:1;min-width:130px"><label>To</label><select id="tft" style="font-weight:600">${LOCS.map(l=>`<option value="${l}" ${l==='Factory'?'selected':''}>${l}</option>`).join('')}</select></div>
+      <div class="fg" style="flex:1;min-width:140px"><label>Linked Job</label><select id="tfj"><option value="">— None —</option>${jobs.filter(j=>j.status!=='installed').slice(0,30).map(j=>`<option value="${j.id}">${j.job_number} — ${j.client_name||''}</option>`).join('')}</select></div>
+    </div>
+    <div class="fg"><label>Notes</label><input id="tfno" placeholder="e.g. For install tomorrow"/></div>
+    <div class="fss">Items to Transfer</div>
+    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
+      <div class="fg" style="flex:0 0 110px"><label>Type</label><select id="tit" onchange="loadTI()">${['fabric','hardware'].map(t=>`<option value="${t}">${t==='fabric'?'Fabric':'Hardware'}</option>`).join('')}</select></div>
+      <div class="fg" style="flex:1;min-width:160px"><label>Item</label><select id="tii">${_fabs.map(f=>`<option value="${f.id}" data-n="${f.alias} (${f.catalogue_no})">${f.catalogue_no} — ${f.alias} (${fn(f.remaining,1)}m)</option>`).join('')}</select></div>
+      <div class="fg" style="flex:0 0 90px"><label>Qty</label><input type="number" id="tiq" value="1" step="0.1"/></div>
+      <button class="btn bs bsm" onclick="ati()">Add</button>
+    </div>
+    <div id="tilist" style="background:var(--bg);border-radius:7px;padding:10px;min-height:40px"></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svTrf()">Create Transfer</button></div></div>`);
+  ri();
+  window.loadTI=()=>{const t=$('tit').value;$('tii').innerHTML=t==='fabric'?_fabs.map(f=>`<option value="${f.id}" data-n="${f.alias} (${f.catalogue_no})">${f.catalogue_no} — ${f.alias} (${fn(f.remaining,1)}m)</option>`).join(''):_hw.map(h=>`<option value="${h.id}" data-n="${h.description}">${h.category} — ${h.description}</option>`).join('');};
+  window.ati=()=>{const t=$('tit').value,sel=$('tii'),n=sel.selectedOptions[0]?.dataset.n||'?',id=parseInt(sel.value),q=parseFloat($('tiq').value)||0;if(!q){toast('Enter qty','err');return;}const ex=items.findIndex(x=>x.item_type===t&&x.item_id===id);if(ex>=0)items[ex].qty=parseFloat((items[ex].qty+q).toFixed(3));else items.push({item_type:t,item_id:id,item_name:n,qty:q});ri();};
+  window.rti=i=>{items.splice(i,1);ri();};
+  window.svTrf=async()=>{const fr=$('tff').value,to=$('tft').value;if(fr===to){toast('From and To must differ','err');return;}if(!items.length){toast('Add at least one item','err');return;}const r=await post('/api/transfers',{from_location:fr,to_location:to,job_id:$('tfj').value||null,notes:$('tfno').value,items});closeModal();toast('Transfer '+r.transfer_no+' created');rTransfers();};
+}
+
+// ── MOVEMENTS ──
+async function rMovements(){
+  const mv=await get('/api/movements');
+  $('tactions').innerHTML='';
+  const tcf={received:'bgr Received',allocated:'bbl Allocated',cut:'bpu Cut',wasted:'brd Wasted',adjusted:'bam Adjusted',transferred:'bgy Transferred'};
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Movement Log <span style="font-size:11px;color:var(--text3);font-weight:400">Last 200 entries</span></h2></div><div class="tw"><table><thead><tr><th>Date / Time</th><th>Item Type</th><th>Item</th><th>Movement</th><th>Qty</th><th>Job</th><th>Notes</th></tr></thead><tbody>${mv.length?mv.map(m=>{const[c,...l]=(tcf[m.movement_type]||'bgy '+m.movement_type).split(' ');return`<tr><td style="font-size:11px;white-space:nowrap" class="muted">${new Date(m.created_at).toLocaleString()}</td><td><span class="badge ${m.item_type==='fabric'?'bgr':'bbl'}">${m.item_type}</span></td><td><strong>${m.item_name||'—'}</strong></td><td><span class="badge ${c}">${l.join(' ')}</span></td><td><strong class="mono" style="color:${m.qty>0?'var(--green)':'var(--red)'}">${m.qty>0?'+':''}${fn(m.qty,3)}</strong></td><td>${m.job_id?`<span class="badge bbl">#${m.job_id}</span>`:'—'}</td><td style="font-size:11px" class="muted">${m.notes||''}</td></tr>`}).join(''):emp('No movements recorded','Stock movements appear here automatically')}</tbody></table></div></div>`;
+}
+</script>
+<script>
+// ── TASKS ──
+async function rTasks(){
+  const tasks=await get('/api/tasks');
+  $('tactions').innerHTML=`<button class="btn bp bsm" onclick="mNewTask()">New Task</button>`;
+  let tf='all';
+  function render(f){
+    const list=f==='all'?tasks:tasks.filter(t=>t.status===f);
+    $('tasktb').innerHTML=list.length?list.map(t=>`<tr><td><strong>${t.title}</strong>${t.description?`<br><span style="font-size:11px;color:var(--text3)">${t.description}</span>`:''}</td><td class="muted">${t.assigned_name||'Unassigned'}</td><td>${pb(t.priority)}</td><td class="muted">${fd(t.due_date)}</td><td>${t.job_number?`<span class="badge bbl">${t.job_number}</span>`:'—'}</td><td>${tb(t.status)}</td><td style="display:flex;gap:4px">${t.status!=='done'?`<button class="btn bs bxs" onclick="utask(${t.id},'done')">Done</button>`:''} ${t.status==='pending'?`<button class="btn bsec bxs" onclick="utask(${t.id},'in_progress')">Start</button>`:''}<button class="btn bg bxs" style="color:var(--red)" onclick="dtask(${t.id})">Delete</button></td></tr>`).join(''):emp('No tasks found','');
+  }
+  $('content').innerHTML=`<div class="tabs" id="tftabs">${['all','pending','in_progress','done'].map(s=>`<button class="tab ${s==='all'?'active':''}" data-s="${s}" onclick="setTF('${s}')">${s==='all'?'All':s.replace('_',' ')}</button>`).join('')}</div><div class="card"><div class="tw"><table><thead><tr><th>Task</th><th>Assigned To</th><th>Priority</th><th>Due Date</th><th>Job</th><th>Status</th><th>Actions</th></tr></thead><tbody id="tasktb"></tbody></table></div></div>`;
+  render('all');
+  window.setTF=f=>{document.querySelectorAll('#tftabs .tab').forEach(b=>b.classList.toggle('active',b.dataset.s===f));render(f);};
+  window.utask=async(id,s)=>{await patch('/api/tasks/'+id,{status:s});toast('Task updated');rTasks();};
+  window.dtask=async id=>{if(!confirm('Delete task?'))return;await del('/api/tasks/'+id);toast('Deleted');rTasks();};
+}
+async function mNewTask(){
+  if(!_users.length&&can('owner','admin'))_users=await get('/api/users');
+  const jobs=await get('/api/jobs');
+  openModal(`<div class="md mmd"><div class="mh"><h3>New Task</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fg"><label>Title *</label><input id="ntt" placeholder="Task title"/></div>
+    <div class="fg"><label>Description</label><textarea id="ntd" placeholder="Optional details"></textarea></div>
+    <div class="fr2"><div class="fg"><label>Assign To</label><select id="ntto">${can('owner','admin')?`<option value="">— Unassigned —</option>${_users.map(u=>`<option value="${u.id}">${u.role} — ${u.name}</option>`).join('')}`:`<option value="${ME.id}">${ME.name}</option>`}</select></div><div class="fg"><label>Priority</label><select id="ntpr"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div><div class="fg"><label>Due Date</label><input type="date" id="ntdu"/></div><div class="fg"><label>Linked Job</label><select id="ntj"><option value="">— None —</option>${jobs.slice(0,20).map(j=>`<option value="${j.id}">${j.job_number} — ${j.client_name||''}</option>`).join('')}</select></div></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svTask()">Create Task</button></div></div>`);
+  window.svTask=async()=>{const t=$('ntt').value.trim();if(!t){toast('Title required','err');return;}await post('/api/tasks',{title:t,description:$('ntd').value,assigned_to:$('ntto').value||null,priority:$('ntpr').value,due_date:$('ntdu').value,job_id:$('ntj').value||null});closeModal();toast('Task created');rTasks();};
+}
+
+// ── CALENDAR ──
+async function rCalendar(){
+  $('tactions').innerHTML=`<button class="btn bsec bsm" onclick="calNav(-1)">← Prev</button><span id="calml" style="font-weight:700;font-size:14px;padding:0 8px"></span><button class="btn bsec bsm" onclick="calNav(1)">Next →</button>${can('owner','admin')?`<button class="btn bp bsm" onclick="mNewEvent()">Add Event</button>`:''}`;
+  await loadCal();
+}
+async function loadCal(){
+  const events=await get(`/api/calendar?month=${calM}&year=${calY}`);
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  $('calml').textContent=`${months[calM-1]} ${calY}`;
+  const first=new Date(calY,calM-1,1).getDay(),days=new Date(calY,calM,0).getDate();
+  const today=new Date(),em={};
+  events.forEach(e=>{const d=(e.start_date||'').split('T')[0];if(!em[d])em[d]=[];em[d].push(e);});
+  const ec={install:'ei',measure:'em2',meeting:'eme',other:'eot'};
+  let cells='';
+  for(let i=0;i<first;i++)cells+=`<div class="cd com"></div>`;
+  for(let d=1;d<=days;d++){
+    const ds=`${calY}-${String(calM).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isTd=today.getFullYear()===calY&&today.getMonth()===calM-1&&today.getDate()===d;
+    const de=em[ds]||[];
+    cells+=`<div class="cd ${isTd?'ct':''}"><div class="cdn">${d}</div>${de.slice(0,3).map(e=>`<div class="cev ${ec[e.event_type]||'eot'}" title="${e.title}${e.assigned_name?' — '+e.assigned_name:''}">${e.title}</div>`).join('')}${de.length>3?`<div style="font-size:10px;color:var(--text3)">+${de.length-3} more</div>`:''}</div>`;
+  }
+  $('content').innerHTML=`<div class="cg" style="margin-bottom:2px">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cdh">${d}</div>`).join('')}</div><div class="cg">${cells}</div>${events.length?`<div class="card" style="margin-top:16px"><div class="ch"><h2>Events This Month</h2></div><div class="tw"><table><thead><tr><th>Date</th><th>Event</th><th>Type</th><th>Assigned</th><th>Job</th><th></th></tr></thead><tbody>${events.map(e=>`<tr><td class="muted">${fd(e.start_date)}</td><td><strong>${e.title}</strong>${e.notes?`<br><span style="font-size:11px;color:var(--text3)">${e.notes}</span>`:''}</td><td><span class="badge ${e.event_type==='install'?'bgr':e.event_type==='measure'?'bbl':e.event_type==='meeting'?'bpu':'bgy'}">${{install:'Install',measure:'Measure',meeting:'Meeting',other:'Other'}[e.event_type]||e.event_type}</span></td><td class="muted">${e.assigned_name||'—'}</td><td>${e.job_number?`<span class="badge bbl">${e.job_number}</span>`:'—'}</td><td>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="dEv(${e.id})">Delete</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`:''}`;
+}
+function calNav(d){calM+=d;if(calM>12){calM=1;calY++;}else if(calM<1){calM=12;calY--;}loadCal();}
+async function dEv(id){if(!confirm('Delete event?'))return;await del('/api/calendar/'+id);toast('Deleted');loadCal();}
+async function mNewEvent(){
+  if(!_users.length&&can('owner','admin'))_users=await get('/api/users');
+  const jobs=await get('/api/jobs');
+  openModal(`<div class="md mmd"><div class="mh"><h3>Add Event</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fg"><label>Title *</label><input id="evt" placeholder="e.g. Install at 123 Main St"/></div>
+    <div class="fr2"><div class="fg"><label>Event Type</label><select id="evtp"><option value="install">Install</option><option value="measure">Measure</option><option value="meeting">Meeting</option><option value="other">Other</option></select></div><div class="fg"><label>Date *</label><input type="date" id="evd" value="${new Date().toISOString().split('T')[0]}"/></div><div class="fg"><label>Assign To</label><select id="evto"><option value="">— No one —</option>${_users.filter(u=>u.active).map(u=>`<option value="${u.id}">${u.role} — ${u.name}</option>`).join('')}</select></div><div class="fg"><label>Linked Job</label><select id="evj"><option value="">— None —</option>${jobs.slice(0,30).map(j=>`<option value="${j.id}">${j.job_number} — ${j.client_name||''}</option>`).join('')}</select></div></div>
+    <div class="fg"><label>Notes</label><textarea id="evno" placeholder="Optional notes"></textarea></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svEv()">Add Event</button></div></div>`);
+  window.svEv=async()=>{const t=$('evt').value.trim();if(!t){toast('Title required','err');return;}await post('/api/calendar',{title:t,event_type:$('evtp').value,start_date:$('evd').value,assigned_to:$('evto').value||null,job_id:$('evj').value||null,notes:$('evno').value});closeModal();toast('Event added');loadCal();};
+}
+
+// ── USERS ──
+async function rUsers(){
+  _users=await get('/api/users');
+  $('tactions').innerHTML=`<button class="btn bp bsm" onclick="mNewUser()">Add User</button>`;
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Users (${_users.length})</h2></div><div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody>${_users.map(u=>`<tr><td><div style="display:flex;align-items:center;gap:9px"><div style="width:30px;height:30px;background:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">${u.name[0].toUpperCase()}</div><strong>${u.name}</strong></div></td><td class="muted">${u.email}</td><td>${rb(u.role)}</td><td>${u.active?`<span class="badge bgr">Active</span>`:`<span class="badge brd">Inactive</span>`}</td><td class="muted">${fd(u.created_at)}</td><td style="display:flex;gap:4px"><button class="btn bsec bxs" onclick="mEditUser(${u.id})">Edit</button>${u.id!==ME.id&&u.active?`<button class="btn bg bxs" style="color:var(--red)" onclick="disUser(${u.id},'${u.name}')">Disable</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`;
+}
+function mNewUser(){
+  openModal(`<div class="md mmd"><div class="mh"><h3>New User Account</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fr2"><div class="fg"><label>Full Name *</label><input id="nun" placeholder="John Smith"/></div><div class="fg"><label>Email *</label><input type="email" id="nue" placeholder="john@soho.ca"/></div><div class="fg"><label>Password *</label><input type="password" id="nup" placeholder="Min 6 characters"/></div><div class="fg"><label>Role *</label><select id="nur"><option value="warehouse">Warehouse</option><option value="sales">Sales Rep</option><option value="admin">Office Admin</option><option value="installer">Installer</option><option value="factory">Factory Floor</option>${ME.role==='owner'?`<option value="owner">Owner</option>`:''}</select></div></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svNewUser()">Create Account</button></div></div>`);
+  window.svNewUser=async()=>{const n=$('nun').value.trim(),e=$('nue').value.trim(),p=$('nup').value;if(!n||!e||!p){toast('All fields required','err');return;}if(p.length<6){toast('Password must be at least 6 characters','err');return;}await post('/api/users',{name:n,email:e,password:p,role:$('nur').value});closeModal();toast('Account created');rUsers();};
+}
+function mEditUser(id){
+  const u=_users.find(x=>x.id===id);if(!u)return;
+  openModal(`<div class="md msm"><div class="mh"><h3>Edit User</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fg"><label>Full Name</label><input id="eun" value="${u.name}"/></div>
+    <div class="fg"><label>Email</label><input type="email" id="eue" value="${u.email}"/></div>
+    <div class="fg"><label>New Password</label><input type="password" id="eup" placeholder="Leave blank to keep current"/></div>
+    <div class="fg"><label>Role</label><select id="eur">${['owner','admin','sales','warehouse','installer','factory'].map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${r}</option>`).join('')}</select></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svEditUser(${id})">Save Changes</button></div></div>`);
+  window.svEditUser=async id=>{const d={name:$('eun').value,email:$('eue').value,role:$('eur').value};if($('eup').value)d.password=$('eup').value;await patch('/api/users/'+id,d);closeModal();toast('User updated');rUsers();};
+}
+async function disUser(id,name){if(!confirm(`Disable ${name}? They will not be able to log in.`))return;await del('/api/users/'+id);toast(name+' disabled');rUsers();}
+
+// ── REPORTS ──
+async function rReports(){
+  const r=await get('/api/reports');
+  $('tactions').innerHTML='';
+  const sm={};r.jobsByStatus.forEach(x=>sm[x.status]=x.count);
+  const total=Object.values(sm).reduce((a,b)=>a+b,0);
+  const qr=r.quoteRevenue||[];
+  const rev=qr.filter(q=>['accepted','converted'].includes(q.status)).reduce((s,q)=>s+(q.revenue||0),0);
+  const revCount=qr.filter(q=>['accepted','converted'].includes(q.status)).reduce((s,q)=>s+(q.count||0),0);
+  $('content').innerHTML=`
+    <div class="sg"><div class="sc"><div class="slb">Total Jobs</div><div class="sv">${total}</div></div><div class="sc"><div class="slb">Accepted Revenue</div><div class="sv">$${fn(rev,0)}</div><div class="ssb">${revCount} quotes</div></div><div class="sc"><div class="slb">In Production</div><div class="sv">${sm.in_production||0}</div></div><div class="sc"><div class="slb">Installed</div><div class="sv">${sm.installed||0}</div></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card"><div class="ch"><h2>Jobs by Status</h2></div><div style="padding:16px">${r.jobsByStatus.map(x=>{const pct=total>0?Math.round(x.count/total*100):0;return`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span>${sb(x.status)}</span><strong style="font-size:13px">${x.count}</strong></div><div class="stb" style="height:6px"><div class="stbf" style="width:${pct}%;background:var(--accent)"></div></div></div>`;}).join('')}</div></div>
+      <div class="card"><div class="ch"><h2>Jobs by Rep</h2></div><div class="tw"><table><thead><tr><th>Sales Rep</th><th>Jobs</th></tr></thead><tbody>${r.jobsByRep.map(x=>`<tr><td><strong>${x.rep||'Unknown'}</strong></td><td>${x.count}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="card"><div class="ch"><h2>Top Clients</h2></div><div class="tw"><table><thead><tr><th>Client</th><th>Jobs</th></tr></thead><tbody>${r.topClients.map(x=>`<tr><td><strong>${x.name}</strong></td><td>${x.job_count}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="card"><div class="ch"><h2>Monthly Activity (6 months)</h2></div><div style="padding:16px">${r.monthlyJobs?.length?r.monthlyJobs.map(x=>{const max=Math.max(...r.monthlyJobs.map(m=>m.count));return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:11px;color:var(--text2);width:56px">${x.month}</span><div class="stb" style="flex:1;height:8px"><div class="stbf" style="width:${max>0?Math.round(x.count/max*100):0}%;background:var(--accent)"></div></div><strong style="font-size:12px;width:20px;text-align:right">${x.count}</strong></div>`;}).join(''):`<div style="color:var(--text3);font-size:13px;padding:8px">No data yet</div>`}</div></div>
+    </div>`;
+}
+
+// ── PRODUCTION ──
+const PROD_STAGES=[
+  {key:'pending',label:'Pending',color:'#94a3b8',bg:'#f1f5f9'},
+  {key:'cutting',label:'Cutting',color:'#d97706',bg:'#fffbeb'},
+  {key:'cut',label:'Cut',color:'#2563eb',bg:'#eff6ff'},
+  {key:'assembling',label:'Assembling',color:'#7c3aed',bg:'#f5f3ff'},
+  {key:'assembled',label:'Assembled',color:'#0d9488',bg:'#f0fdfa'},
+  {key:'qc_pass',label:'QC Passed',color:'#16a34a',bg:'#f0fdf4'},
+  {key:'qc_fail',label:'QC Failed',color:'#dc2626',bg:'#fef2f2'},
+  {key:'packing',label:'Packing',color:'#ea580c',bg:'#fff7ed'},
+  {key:'packed',label:'Packed',color:'#16a34a',bg:'#f0fdf4'}
+];
+const PROD_COL=[
+  {title:'Cut',stages:['pending','cutting'],next:'start_cut',done:'finish_cut',color:'#2563eb'},
+  {title:'Assemble',stages:['cut','assembling','qc_fail'],next:'start_assemble',done:'finish_assemble',color:'#7c3aed'},
+  {title:'QC',stages:['assembled'],color:'#0d9488'},
+  {title:'Pack',stages:['qc_pass','packing'],next:'start_pack',done:'finish_pack',color:'#16a34a'}
+];
+function prodBadge(s){const st=PROD_STAGES.find(x=>x.key===s)||{label:s,color:'#64748b',bg:'#f1f5f9'};return`<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${st.bg};color:${st.color}"><span style="width:6px;height:6px;border-radius:50%;background:${st.color}"></span>${st.label}</span>`;}
+
+async function rProduction(){
+  const [queue,stats]=await Promise.all([get('/api/production'),get('/api/production/stats')]);
+  $('tactions').innerHTML='';
+
+  // Stats bar
+  const total=queue.length;
+  const inProg=(stats.cutting||0)+(stats.assembling||0)+(stats.packing||0);
+  const done=(stats.packed||0);
+  const failed=(stats.qc_fail||0);
+
+  let html=`<div class="sg"><div class="sc"><div class="slb">Total Windows</div><div class="sv">${total}</div></div><div class="sc"><div class="slb">In Progress</div><div class="sv">${inProg}</div></div><div class="sc"><div class="slb">Completed</div><div class="sv">${done}</div></div><div class="sc" ${failed?'style="border-color:#fecaca"':''}><div class="slb">QC Failed</div><div class="sv" ${failed?'style="color:var(--red)"':''}>${failed}</div></div></div>`;
+
+  // Kanban columns
+  html+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;min-height:400px">`;
+  PROD_COL.forEach(col=>{
+    const items=queue.filter(w=>col.stages.includes(w.production_status));
+    html+=`<div style="background:var(--bg);border-radius:10px;border:1px solid var(--border);display:flex;flex-direction:column;min-height:300px">`;
+    html+=`<div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:${col.color}"></div><span style="font-size:13px;font-weight:700">${col.title}</span></div><span style="background:${col.color}15;color:${col.color};font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">${items.length}</span></div>`;
+    html+=`<div style="padding:8px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px">`;
+    if(!items.length) html+=`<div style="text-align:center;padding:24px 10px;color:var(--text3);font-size:12px">No items</div>`;
+    items.forEach(w=>{
+      const isActive=w.production_status==='cutting'||w.production_status==='assembling'||w.production_status==='packing';
+      html+=`<div style="background:var(--white);border:1px solid ${isActive?col.color+'60':'var(--border)'};border-radius:8px;padding:10px 12px;${isActive?'box-shadow:0 0 0 2px '+col.color+'20;':''}">`;
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong style="font-size:12px;color:var(--accent);cursor:pointer" onclick="nav('job-detail',${w.job_id})">${w.job_number}</strong>${prodBadge(w.production_status)}</div>`;
+      html+=`<div style="font-size:12px;font-weight:600;margin-bottom:2px">Window ${w.window_no} — ${w.location||'—'}</div>`;
+      html+=`<div style="font-size:11px;color:var(--text2);margin-bottom:2px">${w.client_name||'—'}</div>`;
+      html+=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">`;
+      html+=`<span style="font-size:10px;padding:1px 6px;border-radius:3px;background:#f5f3ff;color:#6d28d9;font-weight:600">${(w.blind_type||'').toUpperCase()} ${w.profile_code||''}</span>`;
+      html+=`<span style="font-size:10px;padding:1px 6px;border-radius:3px;background:#f1f5f9;color:#475569">${w.catalogue_no||'—'}</span>`;
+      if(w.date_due)html+=`<span style="font-size:10px;padding:1px 6px;border-radius:3px;background:#fffbeb;color:#92400e">Due ${w.date_due}</span>`;
+      html+=`</div>`;
+      // Action buttons
+      html+=`<div style="display:flex;gap:4px;flex-wrap:wrap">`;
+      if(col.title==='Cut'){
+        if(w.production_status==='pending')html+=`<button class="btn bp bxs" onclick="prodAction(${w.id},'start_cut')">Start Cutting</button>`;
+        if(w.production_status==='cutting')html+=`<button class="btn bs bxs" onclick="prodAction(${w.id},'finish_cut')">Done Cutting</button>`;
+      }
+      if(col.title==='Assemble'){
+        if(w.production_status==='cut'||w.production_status==='qc_fail')html+=`<button class="btn bp bxs" style="background:#7c3aed" onclick="prodAction(${w.id},'start_assemble')">${w.production_status==='qc_fail'?'Rework':'Start Assembly'}</button>`;
+        if(w.production_status==='assembling')html+=`<button class="btn bs bxs" onclick="prodAction(${w.id},'finish_assemble')">Done Assembly</button>`;
+      }
+      if(col.title==='QC'){
+        html+=`<button class="btn bs bxs" onclick="prodAction(${w.id},'qc_pass')">Pass</button>`;
+        html+=`<button class="btn bd bxs" onclick="prodQCFail(${w.id})">Fail</button>`;
+      }
+      if(col.title==='Pack'){
+        if(w.production_status==='qc_pass')html+=`<button class="btn bp bxs" style="background:#ea580c" onclick="prodAction(${w.id},'start_pack')">Start Packing</button>`;
+        if(w.production_status==='packing')html+=`<button class="btn bs bxs" onclick="prodAction(${w.id},'finish_pack')">Done Packing</button>`;
+      }
+      html+=`</div></div>`;
+    });
+    html+=`</div></div>`;
+  });
+  html+=`</div>`;
+
+  // Packed / completed section
+  const packed=queue.filter(w=>w.production_status==='packed');
+  if(packed.length){
+    html+=`<div class="card" style="margin-top:16px"><div class="ch"><h2>Completed (${packed.length})</h2></div><div class="tw"><table><thead><tr><th>Job</th><th>Window</th><th>Location</th><th>Type</th><th>Fabric</th><th>Client</th><th>Cut By</th><th>Assembled By</th><th>QC By</th><th>Packed By</th></tr></thead><tbody>${packed.map(w=>`<tr><td><a style="color:var(--accent);cursor:pointer;font-weight:600" onclick="nav('job-detail',${w.job_id})">${w.job_number}</a></td><td>${w.window_no}</td><td>${w.location||'—'}</td><td><span class="badge bpu">${(w.blind_type||'').toUpperCase()} ${w.profile_code||''}</span></td><td class="muted">${w.catalogue_no||'—'}</td><td>${w.client_name||'—'}</td><td class="muted">${w.cut_by||'—'}</td><td class="muted">${w.assembled_by||'—'}</td><td class="muted">${w.qc_by||'—'}</td><td class="muted">${w.packed_by||'—'}</td></tr>`).join('')}</tbody></table></div></div>`;
+  }
+
+  $('content').innerHTML=html;
+}
+
+async function prodAction(winId,action){
+  try{await patch('/api/windows/'+winId+'/production',{action});toast('Updated');rProduction();}
+  catch(e){toast(e.message,'err');}
+}
+function prodQCFail(winId){
+  openModal(`<div class="md msm"><div class="mh"><h3>QC Failure</h3><button class="mx" onclick="closeModal()">×</button></div><div class="mb">
+    <div class="fg"><label>What failed?</label><textarea id="qcfn" placeholder="Describe the issue..." rows="3"></textarea></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bd" onclick="submitQCFail(${winId})">Mark as Failed</button></div></div>`);
+}
+async function submitQCFail(winId){
+  const notes=$('qcfn').value.trim();
+  if(!notes){toast('Please describe the issue','err');return;}
+  await patch('/api/windows/'+winId+'/production',{action:'qc_fail',notes});
+  closeModal();toast('QC Failed — sent back to assembly','warn');rProduction();
+}
+
+// ── CSV IMPORT ──
+let _csvData=null;
+function parseCSVDim(s){
+  // Parse "69.0 1/8"" or "69.0"" or "69 3/4""
+  if(!s)return{whole:0,frac:0};
+  s=s.replace(/"/g,'').trim();
+  const parts=s.split(/\s+/);
+  const whole=Math.round(parseFloat(parts[0])||0);
+  let fr=0;
+  if(parts[1]){
+    const fp=parts[1].split('/');
+    if(fp.length===2)fr=parseFloat(fp[0])/parseFloat(fp[1]);
+  }
+  // Snap to nearest 1/8
+  fr=Math.round(fr*8)/8;
+  return{whole,frac:fr};
+}
+function parseAurooCSV(text){
+  const lines=text.split(/\r?\n/);
+  let section='',result={header:{},billTo:{},items:[],addons:[],totals:{},notes:''};
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i].trim();
+    if(!line)continue;
+    if(line==='QUOTE HEADER'){section='header';continue;}
+    if(line==='BILL TO'){section='billto';continue;}
+    if(line==='LINE ITEMS'){section='items';continue;}
+    if(line==='ADDONS'){section='addons';continue;}
+    if(line==='TOTALS'){section='totals';continue;}
+    if(line==='NOTES'){section='notes';continue;}
+    // Skip header rows (column labels)
+    if(section==='header'&&line.startsWith('Quote Number'))continue;
+    if(section==='billto'&&line.startsWith('Customer Name'))continue;
+    if(section==='items'&&line.startsWith('#,'))continue;
+    if(section==='addons'&&line.startsWith('Addon,'))continue;
+    if(section==='totals'&&line.startsWith('MSRP,'))continue;
+    // Parse CSV line respecting potential commas in values
+    const cols=line.match(/(".*?"|[^,]*),?/g)?.map(c=>c.replace(/,$/,'').replace(/^"|"$/g,'').trim())||[];
+    if(section==='header'&&cols.length>=2){
+      result.header={quote_number:cols[0],date:cols[1],status:cols[2],company:cols[3],address:cols[4],city:cols[5],province:cols[6],postal:cols[7]};
+    }else if(section==='billto'&&cols.length>=2){
+      result.billTo={name:cols[0],phone:cols[1],address:cols[2]||''};
+    }else if(section==='items'&&cols.length>=10){
+      const wd=parseCSVDim(cols[5]),hd=parseCSVDim(cols[6]);
+      result.items.push({
+        num:parseInt(cols[0])||0,location:cols[1],blind_type:cols[2],
+        fabric_code:cols[3],cassette:cols[4],
+        width_in:wd.whole,width_frac:wd.frac,
+        length_in:hd.whole,length_frac:hd.frac,
+        control:cols[7],lr:cols[8],mount:cols[9],
+        qty:parseInt(cols[10])||1,
+        unit_price:parseFloat((cols[11]||'').replace(/[$,]/g,''))||0,
+        discount:cols[12],
+        total:parseFloat((cols[13]||'').replace(/[$,]/g,''))||0
+      });
+    }else if(section==='addons'&&cols.length>=3){
+      result.addons.push({name:cols[0],qty:parseInt(cols[1])||1,price:parseFloat((cols[2]||'').replace(/[$,]/g,''))||0});
+    }else if(section==='totals'&&cols.length>=4){
+      result.totals={msrp:parseFloat((cols[0]||'').replace(/[$,]/g,''))||0,addons:parseFloat((cols[1]||'').replace(/[$,]/g,''))||0,subtotal:parseFloat((cols[2]||'').replace(/[$,]/g,''))||0,tax_pct:parseFloat((cols[3]||'').replace(/%/g,''))||5,tax_amount:parseFloat((cols[4]||'').replace(/[$,]/g,''))||0,total:parseFloat((cols[5]||'').replace(/[$,]/g,''))||0};
+    }else if(section==='notes'){
+      result.notes+=(result.notes?'\n':'')+line;
+    }
+  }
+  return result;
+}
+
+function mUploadCSV(){
+  openModal(`<div class="md msm"><div class="mh"><h3>Import Job from CSV</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div style="border:2px dashed var(--border2);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer" onclick="$('csvFile').click()" id="csvDrop">
+      <svg viewBox="0 0 24 24" style="width:32px;height:32px;margin:0 auto 10px;display:block" fill="none" stroke="var(--text3)" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">Click to select CSV file</div>
+      <div style="font-size:12px;color:var(--text3)">Auroo export format (.csv)</div>
+    </div>
+    <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleCSVFile(this)"/>
+  </div></div>`);
+}
+async function handleCSVFile(input){
+  if(!input.files.length)return;
+  const text=await input.files[0].text();
+  _csvData=parseAurooCSV(text);
+  if(!_csvData.items.length){toast('No line items found in CSV','err');return;}
+  // Load fabrics & profiles for mapping
+  _fabs=await get('/api/fabrics');_profs=await get('/api/profiles');
+  closeModal();
+  showCSVReview();
+}
+
+function matchFabric(code){
+  if(!code)return null;
+  const c=code.toUpperCase().trim();
+  return _fabs.find(f=>f.catalogue_no.toUpperCase()===c)||null;
+}
+function guessProfile(blindType,control){
+  const t=(blindType||'').toLowerCase(),ct=(control||'').toLowerCase();
+  if(t==='zebra'){
+    if(ct.includes('cordless'))return'D';
+    if(ct.includes('motor')&&!ct.includes('tubular'))return'B';
+    if(ct.includes('tubular'))return'I';
+    return'A';
+  }
+  if(t==='roller'||t==='sunscreen'){
+    if(ct.includes('tubular'))return'J';
+    if(ct.includes('motor'))return'G';
+    if(ct.includes('cordless'))return'D';
+    return'F';
+  }
+  if(t==='honeycomb roman shades')return'A';
+  return'A';
+}
+function mapControl(ctrl){
+  const c=(ctrl||'').toLowerCase();
+  if(c.includes('motor')&&c.includes('tubular'))return'motor-tubular';
+  if(c.includes('motor'))return'motor';
+  if(c.includes('cordless'))return'chain';
+  if(c.includes('wand'))return'wand';
+  return'chain';
+}
+function mapMount(m){return(m||'').toLowerCase().startsWith('in')?'in':'out';}
+
+function showCSVReview(){
+  const d=_csvData;
+  // Map items to editable rows
+  const rows=d.items.map((it,i)=>{
+    const fab=matchFabric(it.fabric_code);
+    const prof=guessProfile(it.blind_type,it.control);
+    return{...it,fabric_id:fab?fab.id:'',profile_code:prof,
+      cassette_colour:it.cassette||'White',
+      control_type:mapControl(it.control),lr_side:it.lr||'R',
+      mount_type:mapMount(it.mount),
+      _fabMatch:fab};
+  });
+  window._csvRows=rows;
+
+  $('ptitle').textContent='Import Job from CSV';
+  $('tactions').innerHTML=`<button class="btn bsec bsm" onclick="nav('jobs')">Cancel</button>`;
+
+  const fo=FRACS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  const fabOpts=`<option value="">—</option>`+_fabs.map(f=>`<option value="${f.id}">${f.catalogue_no} — ${f.alias}</option>`).join('');
+  const profOpts=_profs.map(p=>`<option value="${p.code}">${p.code} — ${p.blind_type} — ${p.description}</option>`).join('');
+
+  let html=`
+  <div class="card"><div style="padding:16px 18px"><div class="fss" style="margin-top:0">Client Information</div>
+    <div class="fr3">
+      <div class="fg"><label>Customer Name</label><input id="csv_cname" value="${d.billTo.name||''}" /></div>
+      <div class="fg"><label>Phone</label><input id="csv_cphone" value="${d.billTo.phone||''}" /></div>
+      <div class="fg"><label>Address</label><input id="csv_caddr" value="${d.billTo.address||''}" /></div>
+    </div>
+    ${d.header.quote_number?`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px"><span class="badge bbl">Quote: ${d.header.quote_number}</span><span class="badge bgy">${d.header.date||''}</span>${d.totals.total?`<span class="badge bgr">Total: $${fn(d.totals.total,2)}</span>`:''}</div>`:''}
+  </div></div>
+
+  <div class="card"><div class="ch"><h2>Windows (${rows.length}) — Review and Edit</h2><div style="display:flex;gap:6px">
+    <button class="btn bsec bsm" onclick="csvAddRow()">Add Row</button>
+    <button class="btn bp bsm" onclick="csvRecalcAll()">Recalculate All Cuts</button>
+  </div></div>
+  <div style="overflow-x:auto;font-size:12px">
+    <table style="min-width:1400px">
+    <thead><tr>
+      <th style="width:30px">#</th><th>Location</th><th>Type</th><th style="min-width:140px">Fabric</th>
+      <th style="min-width:160px">Profile</th><th>Case</th>
+      <th>W"</th><th>W frac</th><th>H"</th><th>H frac</th>
+      <th>Mount</th><th>Control</th><th>Side</th>
+      <th style="background:#f5f3ff">Cassette</th><th style="background:#f5f3ff">Roller</th>
+      <th style="background:#f5f3ff">B.Rail</th><th style="background:#f5f3ff">B.Core</th>
+      <th style="background:#f0fdf4">Fab W</th><th style="background:#f0fdf4">Fab Drop</th>
+      <th style="background:#f0fdf4">Metres</th>
+      <th>Cord</th><th>Brk</th>
+      <th>Qty</th><th>Unit $</th>
+      <th style="width:40px"></th>
+    </tr></thead>
+    <tbody id="csvtb"></tbody>
+    </table>
+  </div></div>
+
+  ${d.addons.length?`<div class="card"><div class="ch"><h2>Addons</h2></div><div class="tw"><table><thead><tr><th>Addon</th><th>Qty</th><th>Price</th></tr></thead><tbody>${d.addons.map(a=>`<tr><td>${a.name}</td><td>${a.qty}</td><td>$${fn(a.price,2)}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+
+  ${d.notes?`<div class="card"><div style="padding:14px 18px"><div class="fss" style="margin-top:0">Notes</div><div style="font-size:13px;color:var(--text2)">${d.notes}</div></div></div>`:''}
+
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;padding-bottom:20px">
+    <button class="btn bsec" onclick="nav('jobs')">Cancel Import</button>
+    <button class="btn bp" style="padding:10px 24px;font-size:14px" onclick="csvSaveAll()">Create Job with ${rows.length} Windows</button>
+  </div>`;
+
+  $('content').innerHTML=html;
+  renderCSVRows(fo,fabOpts,profOpts);
+  csvRecalcAll();
+}
+
+function renderCSVRows(fo,fabOpts,profOpts){
+  // Cache options if not passed
+  if(fo)window._csvFO=fo;else fo=window._csvFO;
+  if(fabOpts)window._csvFabOpts=fabOpts;else fabOpts=window._csvFabOpts;
+  if(profOpts)window._csvProfOpts=profOpts;else profOpts=window._csvProfOpts;
+  const rows=window._csvRows;
+  $('csvtb').innerHTML=rows.map((r,i)=>`<tr id="csvr${i}">
+    <td class="muted">${i+1}</td>
+    <td><input value="${r.location||''}" onchange="csvU(${i},'location',this.value)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"/></td>
+    <td><select onchange="csvU(${i},'blind_type',this.value);csvAutoProfile(${i})" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+      ${['Zebra','Roller','Sunscreen','Honeycomb Roman Shades'].map(t=>`<option ${r.blind_type===t?'selected':''}>${t}</option>`).join('')}
+    </select></td>
+    <td><select onchange="csvU(${i},'fabric_id',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;max-width:140px">${fabOpts.replace(`value="${r.fabric_id}"`,`value="${r.fabric_id}" selected`)}</select></td>
+    <td><select onchange="csvU(${i},'profile_code',this.value);csvCalcRow(${i})" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;max-width:160px">${profOpts.replace(`value="${r.profile_code}"`,`value="${r.profile_code}" selected`)}</select></td>
+    <td><select onchange="csvU(${i},'cassette_colour',this.value);csvCalcRow(${i})" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+      ${['White','Black','Grey','Silver','Mill'].map(c=>`<option ${r.cassette_colour===c?'selected':''}>${c}</option>`).join('')}
+    </select></td>
+    <td><input type="number" value="${r.width_in}" onchange="csvU(${i},'width_in',parseFloat(this.value)||0);csvCalcRow(${i})" style="width:50px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center"/></td>
+    <td><select onchange="csvU(${i},'width_frac',parseFloat(this.value)||0);csvCalcRow(${i})" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">${fo.replace(`value="${r.width_frac}"`,`value="${r.width_frac}" selected`)}</select></td>
+    <td><input type="number" value="${r.length_in}" onchange="csvU(${i},'length_in',parseFloat(this.value)||0);csvCalcRow(${i})" style="width:50px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center"/></td>
+    <td><select onchange="csvU(${i},'length_frac',parseFloat(this.value)||0);csvCalcRow(${i})" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">${fo.replace(`value="${r.length_frac}"`,`value="${r.length_frac}" selected`)}</select></td>
+    <td><select onchange="csvU(${i},'mount_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+      <option value="in" ${r.mount_type==='in'?'selected':''}>Inside</option><option value="out" ${r.mount_type==='out'?'selected':''}>Outside</option>
+    </select></td>
+    <td><select onchange="csvU(${i},'control_type',this.value);csvCalcRow(${i})" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+      ${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.']].map(([v,l])=>`<option value="${v}" ${r.control_type===v?'selected':''}>${l}</option>`).join('')}
+    </select></td>
+    <td><select onchange="csvU(${i},'lr_side',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+      <option value="R" ${r.lr_side==='R'?'selected':''}>R</option><option value="L" ${r.lr_side==='L'?'selected':''}>L</option>
+    </select></td>
+    <td class="mono" style="background:#f5f3ff;font-weight:700" id="csv_cc${i}">—</td>
+    <td class="mono" style="background:#f5f3ff;font-weight:700" id="csv_cr${i}">—</td>
+    <td class="mono" style="background:#f5f3ff;font-weight:700" id="csv_br${i}">—</td>
+    <td class="mono" style="background:#f5f3ff;font-weight:700" id="csv_bc${i}">—</td>
+    <td class="mono" style="background:#f0fdf4;font-weight:700;color:var(--green-text)" id="csv_fw${i}">—</td>
+    <td class="mono" style="background:#f0fdf4;font-weight:700;color:var(--green-text)" id="csv_fd${i}">—</td>
+    <td class="mono" style="background:#f0fdf4;font-weight:700;color:var(--green-text)" id="csv_fm${i}">—</td>
+    <td class="mono" id="csv_cord${i}">—</td>
+    <td class="mono" id="csv_brk${i}">—</td>
+    <td><input type="number" value="${r.qty||1}" onchange="csvU(${i},'qty',parseInt(this.value)||1)" style="width:36px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center"/></td>
+    <td><input type="number" value="${r.unit_price||0}" onchange="csvU(${i},'unit_price',parseFloat(this.value)||0)" style="width:70px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px" step="0.01"/></td>
+    <td><button class="btn bg bxs" style="color:var(--red);padding:2px 6px" onclick="csvDelRow(${i})">×</button></td>
+  </tr>`).join('');
+}
+function csvU(i,key,val){window._csvRows[i][key]=val;}
+function csvAutoProfile(i){
+  const r=window._csvRows[i];
+  r.profile_code=guessProfile(r.blind_type,r.control_type);
+  renderCSVRows();csvRecalcAll();
+}
+function csvCalcRow(i){
+  const r=window._csvRows[i];
+  const pr=PDATA[r.profile_code];if(!pr)return;
+  const tw=(r.width_in||0)+(r.width_frac||0);
+  const tl=(r.length_in||0)+(r.length_frac||0);
+  const cc=(tw+pr.c).toFixed(3),cr=(tw+pr.r).toFixed(3);
+  const cbr=(tw+pr.br).toFixed(3),cbc=pr.bc?(tw+pr.bc).toFixed(3):'N/A';
+  const fw=(parseFloat(cbr)-0.0625).toFixed(3);
+  const cas=(r.cassette_colour||'').toLowerCase();
+  const fab=r.fabric_id?_fabs.find(f=>f.id==r.fabric_id):matchFabric(r.fabric_code);
+  const fc=fab?fab.catalogue_no:'';
+  const fd2=(cas==='mill'?(tl+(fab?.slat_size||3)/2-0.5):(tl+6)).toFixed(3);
+  const px=fc?fc[0].toUpperCase():'';
+  const fm=((px==='Z'||px==='S')?parseFloat(fd2)*0.0254*2:parseFloat(fd2)*0.0254).toFixed(3);
+  const ctrl=(r.control_type||'').toLowerCase();
+  const cord=ctrl.startsWith('m')?'None':tl<30?'S':tl<45?'M':'L';
+  const brk=tw>59?3:2;
+  // Update cells
+  const el=id=>document.getElementById(id);
+  if(el('csv_cc'+i))el('csv_cc'+i).textContent=toFrac(cc);
+  if(el('csv_cr'+i))el('csv_cr'+i).textContent=toFrac(cr);
+  if(el('csv_br'+i))el('csv_br'+i).textContent=toFrac(cbr);
+  if(el('csv_bc'+i))el('csv_bc'+i).textContent=cbc!=='N/A'?toFrac(cbc):'N/A';
+  if(el('csv_fw'+i))el('csv_fw'+i).textContent=toFrac(fw);
+  if(el('csv_fd'+i))el('csv_fd'+i).textContent=toFrac(fd2);
+  if(el('csv_fm'+i))el('csv_fm'+i).textContent=fm+'m';
+  if(el('csv_cord'+i))el('csv_cord'+i).textContent=cord;
+  if(el('csv_brk'+i))el('csv_brk'+i).textContent=brk+'×';
+  // Store cuts on row for save
+  r._cuts={cut_cassette:parseFloat(cc),cut_roller:parseFloat(cr),cut_bottom_rail:parseFloat(cbr),cut_bottom_core:cbc!=='N/A'?parseFloat(cbc):0,cut_fabric_width:parseFloat(fw),cut_fabric_drop:parseFloat(fd2),fabric_meters:parseFloat(fm),cord_wand_size:cord,bracket_count:brk};
+}
+function csvRecalcAll(){window._csvRows.forEach((_,i)=>csvCalcRow(i));}
+function csvAddRow(){
+  window._csvRows.push({location:'',blind_type:'Zebra',fabric_code:'',fabric_id:'',profile_code:'A',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',mount_type:'in',qty:1,unit_price:0});
+  renderCSVRows();csvRecalcAll();
+  // Update header count
+  const h=document.querySelector('#content .ch h2');if(h)h.textContent='Windows ('+window._csvRows.length+') — Review and Edit';
+  // Update save button
+  const sb=document.querySelector('#content .btn.bp[onclick*="csvSaveAll"]');if(sb)sb.textContent='Create Job with '+window._csvRows.length+' Windows';
+}
+function csvDelRow(i){
+  window._csvRows.splice(i,1);
+  renderCSVRows();csvRecalcAll();
+  const h=document.querySelector('#content .ch h2');if(h)h.textContent='Windows ('+window._csvRows.length+') — Review and Edit';
+  const sb=document.querySelector('#content .btn.bp[onclick*="csvSaveAll"]');if(sb)sb.textContent='Create Job with '+window._csvRows.length+' Windows';
+}
+async function csvSaveAll(){
+  const rows=window._csvRows;
+  if(!rows.length){toast('No windows to save','err');return;}
+  const cname=$('csv_cname').value.trim();
+  if(!cname){toast('Customer name required','err');return;}
+  const d=_csvData;
+  const payload={
+    client:{name:cname,phone:$('csv_cphone').value,address:$('csv_caddr').value},
+    windows:rows.map(r=>({
+      location:r.location,fabric_id:r.fabric_id?parseInt(r.fabric_id):null,
+      profile_code:r.profile_code,cassette_colour:r.cassette_colour,
+      width_in:r.width_in,width_frac:r.width_frac,
+      length_in:r.length_in,length_frac:r.length_frac,
+      control_type:r.control_type,lr_side:r.lr_side,mount_type:r.mount_type,
+      blind_type:r.blind_type,qty:r.qty||1,unit_price:r.unit_price||0
+    })),
+    notes:d.notes||''
+  };
+  if(d.header.quote_number){
+    payload.quote={
+      quote_number:d.header.quote_number,
+      subtotal:d.totals.subtotal||0,
+      discount_pct:0,
+      tax_pct:d.totals.tax_pct||5,
+      total:d.totals.total||0,
+      notes:d.notes||''
+    };
+  }
+  try{
+    const r=await post('/api/jobs/import',payload);
+    toast('Job '+r.job_number+' created with '+rows.length+' windows');
+    nav('job-detail',r.job_id);
+  }catch(e){toast(e.message,'err');}
+}
+
+// ── BOOT ──
+boot();
+</script>
+</body>
+</html>
