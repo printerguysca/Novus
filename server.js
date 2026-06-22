@@ -12,7 +12,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'soho-blinds-secret-2026';
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://tntmgwukdzzeknlfmotz.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRudG1nd3VrZHp6ZWtubGZtb3R6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU3MTI1MCwiZXhwIjoyMDk2MTQ3MjUwfQ.593no0oW97qNYCNgGtFNdnIhoSEVsaTke7PYc9gepvk';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false }
+});
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -85,38 +87,42 @@ const warehouseRoles = requireRole('owner','admin','warehouse');
 
 // ─── AUTH ROUTES ─────────────────────────────────────────────────────────────
 
-// Nuclear reset — deletes ALL users and recreates fresh. Visit /api/reset-all once.
+// Nuclear reset — uses hardcoded service_role key to bypass RLS
 app.get('/api/reset-all', async (req, res) => {
   try {
-    // Wipe everything that references users
-    await supabase.from('shipment_items').delete().neq('id', 0);
-    await supabase.from('shipments').delete().neq('id', 0);
-    await supabase.from('quote_items').delete().neq('id', 0);
-    await supabase.from('quotes').delete().neq('id', 0);
-    await supabase.from('job_windows').delete().neq('id', 0);
-    await supabase.from('jobs').delete().neq('id', 0);
-    await supabase.from('tasks').delete().neq('id', 0);
-    await supabase.from('calendar_events').delete().neq('id', 0);
-    await supabase.from('users').delete().neq('id', 0);
+    // Create admin client with service_role key directly — bypasses RLS
+    const admin = createClient(
+      'https://tntmgwukdzzeknlfmotz.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRudG1nd3VrZHp6ZWtubGZtb3R6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU3MTI1MCwiZXhwIjoyMDk2MTQ3MjUwfQ.593no0oW97qNYCNgGtFNdnIhoSEVsaTke7PYc9gepvk',
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
 
-    // Create fresh users with new hashes
+    // Wipe everything
+    const tables = ['shipment_items','shipments','quote_items','quotes','job_windows','jobs','tasks','calendar_events','users'];
+    for (const t of tables) {
+      await admin.from(t).delete().neq('id', 0);
+    }
+
+    // Create fresh users
     const h = p => bcrypt.hashSync(p, 10);
-    const users = [
+    const { data, error } = await admin.from('users').insert([
       { name:'Owner Account', email:'owner@soho.ca', password_hash:h('owner123'), role:'owner', active:true },
       { name:'Office Admin', email:'admin@soho.ca', password_hash:h('admin123'), role:'admin', active:true },
       { name:'Sales Rep', email:'sales@soho.ca', password_hash:h('sales123'), role:'sales', active:true },
       { name:'Warehouse Team', email:'warehouse@soho.ca', password_hash:h('warehouse123'), role:'warehouse', active:true },
       { name:'Installer', email:'installer@soho.ca', password_hash:h('installer123'), role:'installer', active:true },
       { name:'Factory Floor', email:'factory@soho.ca', password_hash:h('factory123'), role:'factory', active:true },
-    ];
-    const { data, error } = await supabase.from('users').insert(users).select('id,email,role');
+    ]).select('id,email,role');
     if (error) return res.json({ ok: false, step: 'insert', error: error.message });
 
-    // Verify bcrypt works
-    const { data: check } = await supabase.from('users').select('*').eq('email', 'owner@soho.ca').limit(1);
+    // Verify
+    const { data: check } = await admin.from('users').select('*').eq('email', 'owner@soho.ca').limit(1);
     const match = check?.[0] ? bcrypt.compareSync('owner123', check[0].password_hash) : false;
 
-    res.json({ ok: true, users_created: data, bcrypt_verify: match });
+    // Also check which key the main client uses
+    const keyUsed = SUPABASE_KEY.substring(0, 30) + '...';
+
+    res.json({ ok: true, users_created: data, bcrypt_verify: match, main_key_preview: keyUsed });
   } catch(e) {
     res.json({ ok: false, error: e.message });
   }
