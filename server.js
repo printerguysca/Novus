@@ -85,6 +85,25 @@ const warehouseRoles = requireRole('owner','admin','warehouse');
 
 // ─── AUTH ROUTES ─────────────────────────────────────────────────────────────
 
+// One-time password reset — visit /api/fix-passwords in browser, then remove this
+app.get('/api/fix-passwords', async (req, res) => {
+  const accounts = [
+    { email:'owner@soho.ca', pass:'owner123' },
+    { email:'admin@soho.ca', pass:'admin123' },
+    { email:'sales@soho.ca', pass:'sales123' },
+    { email:'warehouse@soho.ca', pass:'warehouse123' },
+    { email:'installer@soho.ca', pass:'installer123' },
+    { email:'factory@soho.ca', pass:'factory123' },
+  ];
+  const results = [];
+  for (const a of accounts) {
+    const hash = bcrypt.hashSync(a.pass, 10);
+    const { error } = await supabase.from('users').update({ password_hash: hash }).eq('email', a.email);
+    results.push({ email: a.email, ok: !error, error: error?.message });
+  }
+  res.json({ message: 'Passwords reset', results });
+});
+
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
