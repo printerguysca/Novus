@@ -85,42 +85,41 @@ const warehouseRoles = requireRole('owner','admin','warehouse');
 
 // ─── AUTH ROUTES ─────────────────────────────────────────────────────────────
 
-// Force seed — visit /api/seed once to populate users
-app.get('/api/seed', async (req, res) => {
-  try { await seed(); res.json({ ok: true, message: 'Seed complete' }); }
-  catch(e) { res.json({ ok: false, error: e.message }); }
-});
+// Nuclear reset — deletes ALL users and recreates fresh. Visit /api/reset-all once.
+app.get('/api/reset-all', async (req, res) => {
+  try {
+    // Wipe everything that references users
+    await supabase.from('shipment_items').delete().neq('id', 0);
+    await supabase.from('shipments').delete().neq('id', 0);
+    await supabase.from('quote_items').delete().neq('id', 0);
+    await supabase.from('quotes').delete().neq('id', 0);
+    await supabase.from('job_windows').delete().neq('id', 0);
+    await supabase.from('jobs').delete().neq('id', 0);
+    await supabase.from('tasks').delete().neq('id', 0);
+    await supabase.from('calendar_events').delete().neq('id', 0);
+    await supabase.from('users').delete().neq('id', 0);
 
-// Debug — shows all users and tests bcrypt
-app.get('/api/debug-login', async (req, res) => {
-  const { data: allUsers, error, count } = await supabase.from('users').select('id,email,role,active', { count: 'exact' });
-  if (error) return res.json({ error: error.message });
-  const test = allUsers?.find(u => u.email === 'owner@soho.ca');
-  let bcryptTest = null;
-  if (test) {
-    const { data: full } = await supabase.from('users').select('*').eq('id', test.id).limit(1);
-    if (full?.[0]) bcryptTest = { match: bcrypt.compareSync('owner123', full[0].password_hash), hashLen: full[0].password_hash?.length };
-  }
-  res.json({ total: count, users: allUsers || [], bcryptTest });
-});
+    // Create fresh users with new hashes
+    const h = p => bcrypt.hashSync(p, 10);
+    const users = [
+      { name:'Owner Account', email:'owner@soho.ca', password_hash:h('owner123'), role:'owner', active:true },
+      { name:'Office Admin', email:'admin@soho.ca', password_hash:h('admin123'), role:'admin', active:true },
+      { name:'Sales Rep', email:'sales@soho.ca', password_hash:h('sales123'), role:'sales', active:true },
+      { name:'Warehouse Team', email:'warehouse@soho.ca', password_hash:h('warehouse123'), role:'warehouse', active:true },
+      { name:'Installer', email:'installer@soho.ca', password_hash:h('installer123'), role:'installer', active:true },
+      { name:'Factory Floor', email:'factory@soho.ca', password_hash:h('factory123'), role:'factory', active:true },
+    ];
+    const { data, error } = await supabase.from('users').insert(users).select('id,email,role');
+    if (error) return res.json({ ok: false, step: 'insert', error: error.message });
 
-// One-time password reset — visit /api/fix-passwords in browser, then remove this
-app.get('/api/fix-passwords', async (req, res) => {
-  const accounts = [
-    { email:'owner@soho.ca', pass:'owner123' },
-    { email:'admin@soho.ca', pass:'admin123' },
-    { email:'sales@soho.ca', pass:'sales123' },
-    { email:'warehouse@soho.ca', pass:'warehouse123' },
-    { email:'installer@soho.ca', pass:'installer123' },
-    { email:'factory@soho.ca', pass:'factory123' },
-  ];
-  const results = [];
-  for (const a of accounts) {
-    const hash = bcrypt.hashSync(a.pass, 10);
-    const { error } = await supabase.from('users').update({ password_hash: hash }).eq('email', a.email);
-    results.push({ email: a.email, ok: !error, error: error?.message });
+    // Verify bcrypt works
+    const { data: check } = await supabase.from('users').select('*').eq('email', 'owner@soho.ca').limit(1);
+    const match = check?.[0] ? bcrypt.compareSync('owner123', check[0].password_hash) : false;
+
+    res.json({ ok: true, users_created: data, bcrypt_verify: match });
+  } catch(e) {
+    res.json({ ok: false, error: e.message });
   }
-  res.json({ message: 'Passwords reset', results });
 });
 
 app.post('/api/auth/login', async (req, res) => {
