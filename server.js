@@ -961,8 +961,12 @@ async function seed() {
   const { error: countErr } = await supabase.from('users').select('id', { count: 'exact', head: true });
   if (countErr) { console.error('Seed check failed — did you run schema.sql in Supabase SQL Editor?', countErr.message); return; }
 
-  // Always upsert demo users so bcrypt hashes are generated fresh on this runtime.
-  // This prevents hash mismatch when the DB was seeded on a different runtime (e.g. local vs Vercel).
+  // Always refresh demo user hashes so bcrypt hashes are generated fresh on this runtime.
+  // This prevents hash mismatch when the DB was seeded in a different environment (e.g. local vs Vercel).
+  // Uses the same admin client pattern as /api/reset-all, which is proven to work.
+  const adminClient = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+  const demoEmails = ['owner@soho.ca','admin@soho.ca','sales@soho.ca','warehouse@soho.ca','installer@soho.ca','factory@soho.ca'];
+  await adminClient.from('users').delete().in('email', demoEmails);
   const hash = p => bcrypt.hashSync(p, 10);
   const demoUsers = [
     { name:'Owner Account', email:'owner@soho.ca', password_hash:hash('owner123'), role:'owner', active:true },
@@ -972,12 +976,12 @@ async function seed() {
     { name:'Installer', email:'installer@soho.ca', password_hash:hash('installer123'), role:'installer', active:true },
     { name:'Factory Floor', email:'factory@soho.ca', password_hash:hash('factory123'), role:'factory', active:true },
   ];
-  const { error: ue } = await supabase.from('users').upsert(demoUsers, { onConflict: 'email' });
-  if (ue) { console.error('Failed to upsert demo users:', ue.message); return; }
+  const { error: ue } = await adminClient.from('users').insert(demoUsers);
+  if (ue) { console.error('Failed to seed demo users:', ue.message); return; }
   console.log('Demo users synced with fresh hashes');
 
   // Only seed reference data if it doesn't exist yet
-  const { count: profileCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+  const { count: profileCount } = await adminClient.from('profiles').select('*', { count: 'exact', head: true });
   if (profileCount > 0) { console.log('Reference data already exists, skipping'); return; }
 
   const profiles = [
