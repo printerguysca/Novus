@@ -91,20 +91,17 @@ app.get('/api/seed', async (req, res) => {
   catch(e) { res.json({ ok: false, error: e.message }); }
 });
 
-// Debug login — visit /api/debug-login in browser
+// Debug — shows all users and tests bcrypt
 app.get('/api/debug-login', async (req, res) => {
-  const email = 'owner@soho.ca';
-  const pass = 'owner123';
-  const { data: users, error } = await supabase.from('users').select('*').eq('email', email).limit(5);
+  const { data: allUsers, error, count } = await supabase.from('users').select('id,email,role,active', { count: 'exact' });
   if (error) return res.json({ error: error.message });
-  if (!users || users.length === 0) return res.json({ error: 'No user found', email });
-  const results = users.map(u => ({
-    id: u.id, email: u.email, active: u.active,
-    hash_preview: u.password_hash?.substring(0, 20) + '...',
-    bcrypt_match: bcrypt.compareSync(pass, u.password_hash),
-    hash_length: u.password_hash?.length
-  }));
-  res.json({ user_count: users.length, results });
+  const test = allUsers?.find(u => u.email === 'owner@soho.ca');
+  let bcryptTest = null;
+  if (test) {
+    const { data: full } = await supabase.from('users').select('*').eq('id', test.id).limit(1);
+    if (full?.[0]) bcryptTest = { match: bcrypt.compareSync('owner123', full[0].password_hash), hashLen: full[0].password_hash?.length };
+  }
+  res.json({ total: count, users: allUsers || [], bcryptTest });
 });
 
 // One-time password reset — visit /api/fix-passwords in browser, then remove this
