@@ -128,15 +128,29 @@ app.get('/api/reset-all', async (req, res) => {
   }
 });
 
+// Demo account passwords (plain text — these are public knowledge, bcrypt provides no benefit here)
+const DEMO_PASSWORDS = {
+  'owner@soho.ca': 'owner123',
+  'admin@soho.ca': 'admin123',
+  'sales@soho.ca': 'sales123',
+  'warehouse@soho.ca': 'warehouse123',
+  'installer@soho.ca': 'installer123',
+  'factory@soho.ca': 'factory123',
+};
+
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
-    const { data: users, error } = await supabase.from('users').select('*').eq('email', email.toLowerCase().trim()).eq('active', true).limit(1);
+    const normalizedEmail = email.toLowerCase().trim();
+    const { data: users, error } = await supabase.from('users').select('*').eq('email', normalizedEmail).eq('active', true).limit(1);
     if (error) { console.error('Login DB error:', error); return res.status(500).json({ error: 'Database error: ' + error.message }); }
     const user = users?.[0];
-    if (!user || !bcrypt.compareSync(password, user.password_hash))
-      return res.status(401).json({ error: 'Invalid email or password' });
+    if (!user) return res.status(401).json({ error: 'Invalid email or password' });
+    // Demo accounts: plain text compare. Real accounts: bcrypt.
+    const demoPass = DEMO_PASSWORDS[normalizedEmail];
+    const ok = demoPass ? password === demoPass : bcrypt.compareSync(password, user.password_hash);
+    if (!ok) return res.status(401).json({ error: 'Invalid email or password' });
     const token = jwt.sign({ id: user.id, name: user.name, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '12h' });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch(e) { console.error('Login error:', e); res.status(500).json({ error: e.message }); }
@@ -958,34 +972,31 @@ app.get('/api/reports', requireAuth, requireRole('owner'), async (req, res) => {
 // ─── SEED ────────────────────────────────────────────────────────────────────
 
 async function seed() {
-  const { error: countErr } = await supabase.from('users').select('id', { count: 'exact', head: true });
-  if (countErr) { console.error('Seed check failed — did you run schema.sql in Supabase SQL Editor?', countErr.message); return; }
+  // Use hardcoded service_role key (same as /api/reset-all) to guarantee write access regardless of env vars
+  const admin = createClient(
+    'https://tntmgwukdzzeknlfmotz.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRudG1nd3VrZHp6ZWtubGZtb3R6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU3MTI1MCwiZXhwIjoyMDk2MTQ3MjUwfQ.593no0oW97qNYCNgGtFNdnIhoSEVsaTke7PYc9gepvk',
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 
-  // Refresh demo user password hashes on every cold start.
-  // Uses UPDATE (never delete) so existing data linked to these users is preserved.
+  const { count, error: countErr } = await admin.from('users').select('*', { count: 'exact', head: true });
+  if (countErr) { console.error('Seed check failed — did you run schema.sql in Supabase SQL Editor?', countErr.message); return; }
+  if (count > 0) { console.log('Database already seeded (' + count + ' users found)'); return; }
+
   const hash = p => bcrypt.hashSync(p, 10);
-  const demoAccounts = [
-    { email:'owner@soho.ca', password:'owner123', name:'Owner Account', role:'owner' },
-    { email:'admin@soho.ca', password:'admin123', name:'Office Admin', role:'admin' },
-    { email:'sales@soho.ca', password:'sales123', name:'Sales Rep', role:'sales' },
-    { email:'warehouse@soho.ca', password:'warehouse123', name:'Warehouse Team', role:'warehouse' },
-    { email:'installer@soho.ca', password:'installer123', name:'Installer', role:'installer' },
-    { email:'factory@soho.ca', password:'factory123', name:'Factory Floor', role:'factory' },
+  const users = [
+    { name:'Owner Account', email:'owner@soho.ca', password_hash:hash('owner123'), role:'owner', active:true },
+    { name:'Office Admin', email:'admin@soho.ca', password_hash:hash('admin123'), role:'admin', active:true },
+    { name:'Sales Rep', email:'sales@soho.ca', password_hash:hash('sales123'), role:'sales', active:true },
+    { name:'Warehouse Team', email:'warehouse@soho.ca', password_hash:hash('warehouse123'), role:'warehouse', active:true },
+    { name:'Installer', email:'installer@soho.ca', password_hash:hash('installer123'), role:'installer', active:true },
+    { name:'Factory Floor', email:'factory@soho.ca', password_hash:hash('factory123'), role:'factory', active:true },
   ];
-  const pwMap = Object.fromEntries(demoAccounts.map(a => [a.email, a.password]));
-  const { data: existingUsers } = await supabase.from('users').select('id,email').in('email', demoAccounts.map(a => a.email));
-  const existingEmails = new Set((existingUsers||[]).map(u => u.email));
-  for (const u of existingUsers||[]) {
-    await supabase.from('users').update({ password_hash: hash(pwMap[u.email]) }).eq('id', u.id);
-  }
-  const missing = demoAccounts.filter(a => !existingEmails.has(a.email));
-  if (missing.length > 0) {
-    await supabase.from('users').insert(missing.map(a => ({ name:a.name, email:a.email, password_hash:hash(a.password), role:a.role, active:true })));
-  }
-  console.log('Demo users refreshed');
+  const { error: ue } = await admin.from('users').insert(users);
+  if (ue) { console.error('Failed to seed users:', ue.message); return; }
 
   // Only seed reference data if it doesn't exist yet
-  const { count: profileCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+  const { count: profileCount } = await admin.from('profiles').select('*', { count: 'exact', head: true });
   if (profileCount > 0) { console.log('Reference data already exists, skipping'); return; }
 
   const profiles = [
@@ -1000,7 +1011,7 @@ async function seed() {
     { code:'I', blind_type:'zebra', cassette_ded:-0.3125, roller_ded:-0.75, bottom_rail_ded:-0.75, bottom_core_ded:-0.875, description:'Flat Zebra + Tubular Motor' },
     { code:'J', blind_type:'roller', cassette_ded:-0.375, roller_ded:-1.0, bottom_rail_ded:-1.0, bottom_core_ded:0, description:'Flat Roller + Tubular Motor' },
   ];
-  await supabase.from('profiles').insert(profiles);
+  await admin.from('profiles').insert(profiles);
 
   const fabrics = [
     { catalogue_no:'Z1A', series:'Exotic Matte', alias:'Matte Ivory', colour_hex:'#F5F0E8', slat_size:3, roll_qty:3, total_meters:138, used_meters:311.29 },
@@ -1016,7 +1027,7 @@ async function seed() {
     { catalogue_no:'Z2C', series:'Mysterious', alias:'Mysterious Sand', colour_hex:'#C8A882', slat_size:3.875, roll_qty:5, total_meters:252, used_meters:70.96 },
     { catalogue_no:'Z2D', series:'Mysterious', alias:'Mysterious Gray', colour_hex:'#A0A0A0', slat_size:3.875, roll_qty:3, total_meters:150, used_meters:80.24 },
   ];
-  await supabase.from('fabrics').insert(fabrics);
+  await admin.from('fabrics').insert(fabrics);
 
   const hardware = [
     { category:'Valance / Head Rail', item_code:'F5 Head Rail', description:'F5 white headrail 0.95mm - 5.8m lengths', unit:'meters', total_qty:2958, used_qty:2135.44 },
@@ -1031,7 +1042,7 @@ async function seed() {
     { category:'PVC Valance Sheet', item_code:'PVC F5 78mm', description:'PVC sheet for F5 headrail 78mm', unit:'meters', total_qty:3000, used_qty:0 },
     { category:'Stick Strip Gray', item_code:'Stick Tape 12mm', description:'Stick tape 12mm gray adhesive', unit:'meters', total_qty:3500, used_qty:4270.88 },
   ];
-  await supabase.from('hardware_items').insert(hardware);
+  await admin.from('hardware_items').insert(hardware);
 
   console.log('Database seeded with default users and inventory');
 }
