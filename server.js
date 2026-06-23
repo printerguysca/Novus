@@ -961,27 +961,31 @@ async function seed() {
   const { error: countErr } = await supabase.from('users').select('id', { count: 'exact', head: true });
   if (countErr) { console.error('Seed check failed — did you run schema.sql in Supabase SQL Editor?', countErr.message); return; }
 
-  // Always refresh demo user hashes so bcrypt hashes are generated fresh on this runtime.
-  // This prevents hash mismatch when the DB was seeded in a different environment (e.g. local vs Vercel).
-  // Uses the same admin client pattern as /api/reset-all, which is proven to work.
-  const adminClient = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
-  const demoEmails = ['owner@soho.ca','admin@soho.ca','sales@soho.ca','warehouse@soho.ca','installer@soho.ca','factory@soho.ca'];
-  await adminClient.from('users').delete().in('email', demoEmails);
+  // Refresh demo user password hashes on every cold start.
+  // Uses UPDATE (never delete) so existing data linked to these users is preserved.
   const hash = p => bcrypt.hashSync(p, 10);
-  const demoUsers = [
-    { name:'Owner Account', email:'owner@soho.ca', password_hash:hash('owner123'), role:'owner', active:true },
-    { name:'Office Admin', email:'admin@soho.ca', password_hash:hash('admin123'), role:'admin', active:true },
-    { name:'Sales Rep', email:'sales@soho.ca', password_hash:hash('sales123'), role:'sales', active:true },
-    { name:'Warehouse Team', email:'warehouse@soho.ca', password_hash:hash('warehouse123'), role:'warehouse', active:true },
-    { name:'Installer', email:'installer@soho.ca', password_hash:hash('installer123'), role:'installer', active:true },
-    { name:'Factory Floor', email:'factory@soho.ca', password_hash:hash('factory123'), role:'factory', active:true },
+  const demoAccounts = [
+    { email:'owner@soho.ca', password:'owner123', name:'Owner Account', role:'owner' },
+    { email:'admin@soho.ca', password:'admin123', name:'Office Admin', role:'admin' },
+    { email:'sales@soho.ca', password:'sales123', name:'Sales Rep', role:'sales' },
+    { email:'warehouse@soho.ca', password:'warehouse123', name:'Warehouse Team', role:'warehouse' },
+    { email:'installer@soho.ca', password:'installer123', name:'Installer', role:'installer' },
+    { email:'factory@soho.ca', password:'factory123', name:'Factory Floor', role:'factory' },
   ];
-  const { error: ue } = await adminClient.from('users').insert(demoUsers);
-  if (ue) { console.error('Failed to seed demo users:', ue.message); return; }
-  console.log('Demo users synced with fresh hashes');
+  const pwMap = Object.fromEntries(demoAccounts.map(a => [a.email, a.password]));
+  const { data: existingUsers } = await supabase.from('users').select('id,email').in('email', demoAccounts.map(a => a.email));
+  const existingEmails = new Set((existingUsers||[]).map(u => u.email));
+  for (const u of existingUsers||[]) {
+    await supabase.from('users').update({ password_hash: hash(pwMap[u.email]) }).eq('id', u.id);
+  }
+  const missing = demoAccounts.filter(a => !existingEmails.has(a.email));
+  if (missing.length > 0) {
+    await supabase.from('users').insert(missing.map(a => ({ name:a.name, email:a.email, password_hash:hash(a.password), role:a.role, active:true })));
+  }
+  console.log('Demo users refreshed');
 
   // Only seed reference data if it doesn't exist yet
-  const { count: profileCount } = await adminClient.from('profiles').select('*', { count: 'exact', head: true });
+  const { count: profileCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
   if (profileCount > 0) { console.log('Reference data already exists, skipping'); return; }
 
   const profiles = [
