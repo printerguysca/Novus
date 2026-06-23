@@ -179,21 +179,7 @@ tbody tr:hover td{background:var(--accent-bg);}
   .qb-adj{grid-template-columns:1fr !important;}
   .qb-actions{flex-direction:column !important;}
   .qb-actions .btn{width:100%;justify-content:center;}
-  .qb-table-wrap{display:none !important;}
-  .qb-cards{display:block !important;}
-  .qb-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;position:relative;}
-  .qb-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
-  .qb-card-head strong{font-size:14px;color:var(--text);}
-  .qb-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-  .qb-card-field{display:flex;flex-direction:column;gap:2px;}
-  .qb-card-field.full{grid-column:1/-1;}
-  .qb-card-field label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px;}
-  .qb-card-field input,.qb-card-field select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--card);}
-  .qb-card-total{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
-  .qb-card-total span{font-size:11px;color:var(--text3);}
-  .qb-card-total strong{font-size:16px;color:var(--accent);font-weight:800;}
-  .qb-card-actions{display:flex;gap:6px;}
-  .qb-card-actions .btn{padding:4px 10px;font-size:12px;}
+  .qbc-loc,.qbc-type{min-width:140px;}
   /* Touch-friendly: prevent iOS zoom, min tap targets */
   input,select,textarea{font-size:16px !important;}
   .btn{min-height:44px;}
@@ -202,11 +188,27 @@ tbody tr:hover td{background:var(--accent-bg);}
   .fg input,.fg select,.fg textarea{padding:10px !important;}
   .fss{font-size:15px;}
 }
-.qb-cards{display:none;}
-@media(max-width:480px){.sg{grid-template-columns:1fr;}#content{padding:10px;}
-  .qb-card-grid{grid-template-columns:1fr;}
-  .card{border-radius:8px;}
+.qb-cards{display:block;}
+.qb-table-wrap{display:none;}
+/* Compact card layout */
+.qb-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+.qbc-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.qbc-num{font-size:11px;font-weight:700;color:var(--text3);flex-shrink:0;min-width:16px;}
+.qbc-loc{flex:2;min-width:100px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card);color:var(--text);}
+.qbc-type{flex:0 0 auto;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card);color:var(--text);}
+.qbc-btns{display:flex;gap:4px;margin-left:auto;flex-shrink:0;}
+.qbc-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;align-items:flex-end;}
+.qbc-field{display:flex;flex-direction:column;gap:2px;}
+.qbc-field label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap;}
+.qbc-field input,.qbc-field select{padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--card);color:var(--text);}
+.qbc-grow{flex:1;min-width:140px;}
+.qbc-vsep{width:1px;background:var(--border);align-self:stretch;margin:0 2px;}
+.qbc-foot-val{font-size:15px;color:var(--accent);font-weight:800;font-family:'SF Mono',monospace;padding:6px 0;}
+@media(max-width:600px){
+  .qbc-loc,.qbc-type{flex:1 1 140px;}
+  .qbc-field input,.qbc-field select,.qbc-loc,.qbc-type{font-size:16px !important;}
 }
+@media(max-width:480px){.sg{grid-template-columns:1fr;}#content{padding:10px;}.card{border-radius:8px;}}
 @media print{#sidebar,#topbar,.btn,#toasts{display:none!important;}#main,#content{overflow:visible!important;height:auto!important;}}
 </style>
 </head>
@@ -268,6 +270,8 @@ function priceLookup(wIn,wFr,hIn,hFr){
 }
 // ── FABRIC CATALOG (coded system) ──
 const BLIND_TYPES=['Zebra','Roller','Double Roller','Honeycomb'];
+const LOCATION_SUGGESTIONS=['Master Bedroom','Master Bedroom (Left)','Master Bedroom (Right)','Bedroom 2','Bedroom 3','Kids Room','Kids Room (Left)','Kids Room (Right)','Baby Room','Guest Room','Living Room','Living Room (Left)','Living Room (Right)','Dining Room','Kitchen','Office','Home Office','Basement','Loft','Patio','Patio Door','Sunroom','Laundry Room','Bathroom','Ensuite','Hallway','Staircase','Garage'];
+const LOCATION_DATALIST=`<datalist id="loc-list">${LOCATION_SUGGESTIONS.map(l=>`<option value="${l}">`).join('')}</datalist>`;
 const FABRIC_CAT=[
 // Zebra — Z1 Matte 3"
 {code:'Z1A',cat:'Zebra',series:'Z1',name:'Matte',color:'Ivory',filter:'Room Darkening',slat:'3"'},
@@ -363,6 +367,11 @@ function fabsForCat(cat){return FABRIC_CAT.filter(f=>f.cat===cat);}
 function fabOptsByCat(cat,selected){
   const list=fabsForCat(cat);
   return'<option value="">Select fabric...</option>'+list.map(f=>`<option value="${f.code}" ${selected===f.code?'selected':''}>${fabLabel(f)}</option>`).join('');
+}
+// Double Roller: all Zebra + Roller fabrics in one flat list
+function fabOptsDoubleRoller(selected){
+  const all=[...fabsForCat('Zebra'),...fabsForCat('Roller')];
+  return'<option value="">Select fabric...</option>'+all.map(f=>`<option value="${f.code}" ${selected===f.code?'selected':''}>${fabLabel(f)}</option>`).join('');
 }
 const ROLE_NAV={
   owner:[{s:'Overview'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'Jobs'},{s:'Production'},{p:'production',l:'Production Queue'},{s:'Office'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'},{s:'Warehouse'},{p:'fabric',l:'Fabric Stock'},{p:'hardware',l:'Hardware Stock'},{p:'shipments',l:'Shipments'},{p:'transfers',l:'Transfers'},{p:'movements',l:'Movement Log'},{s:'Admin'},{p:'reports',l:'Reports'},{p:'users',l:'Users'}],
@@ -760,10 +769,10 @@ async function rQuoteBuilder(editId){
   let q=null;
   if(editId){
     q=await get('/api/quotes/'+editId);
-    _qb.items=(q.items||[]).map(it=>({location:it.location||'',blind_type:it.blind_type||'Zebra',fabric_code:it.fabric_code||it.fabric_id||'',hc_custom:it.hc_custom||'',cassette_colour:it.cassette_colour||'',width_in:it.width_in||0,width_frac:it.width_frac||0,length_in:it.length_in||0,length_frac:it.length_frac||0,control_type:it.control_type||'',lr_side:it.lr_side||'',mount_type:it.mount_type||'',qty:it.qty||1,unit_price:it.unit_price||0,discount_pct:it.discount_pct||0}));
+    _qb.items=(q.items||[]).map(it=>({location:it.location||'',blind_type:it.blind_type||'Zebra',fabric_code:it.fabric_code||it.fabric_id||'',fabric_code_2:it.fabric_code_2||'',hc_custom:it.hc_custom||'',cassette_colour:it.cassette_colour||'',width_in:it.width_in||0,width_frac:it.width_frac||0,length_in:it.length_in||0,length_frac:it.length_frac||0,control_type:it.control_type||'chain',lr_side:it.lr_side||'R',control_type_2:it.control_type_2||'chain',lr_side_2:it.lr_side_2||'L',mount_type:it.mount_type||'',qty:it.qty||1,unit_price:it.unit_price||0,discount_pct:it.discount_pct||0}));
     _qb.editing=editId;
   }else{
-    _qb.items=[{location:'',blind_type:'Zebra',fabric_code:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',mount_type:'in',qty:1,unit_price:0,discount_pct:0}];
+    _qb.items=[{location:'',blind_type:'Zebra',fabric_code:'',fabric_code_2:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',control_type_2:'chain',lr_side_2:'L',mount_type:'in',qty:1,unit_price:0,discount_pct:0}];
     _qb.editing=null;
   }
   $('ptitle').textContent=editId?'Edit Quote — '+(q?.quote_number||''):'New Quote';
@@ -828,6 +837,8 @@ async function rQuoteBuilder(editId){
     <button class="btn bp" style="padding:10px 24px;font-size:14px" onclick="qbSave()">${editId?'Save Changes':'Create Quote'}</button>
   </div>`;
 
+  // Inject datalist for location suggestions if not already present
+  if(!document.getElementById('loc-list')) document.body.insertAdjacentHTML('beforeend',LOCATION_DATALIST);
   qbRenderRows();
   qbCalcTotals();
 }
@@ -836,8 +847,16 @@ function qbFabricCell(i,r){
   if(r.blind_type==='Honeycomb'){
     return`<input value="${r.hc_custom||''}" onchange="qbU(${i},'hc_custom',this.value)" maxlength="10" placeholder="Custom code" style="width:100px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"/>`;
   }
-  const cat=r.blind_type==='Double Roller'?'Roller':r.blind_type;
-  return`<select onchange="qbU(${i},'fabric_code',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;max-width:200px">${fabOptsByCat(cat,r.fabric_code)}</select>`;
+  if(r.blind_type==='Double Roller'){
+    const s='padding:4px;border:1px solid var(--border);border-radius:4px;font-size:11px;width:100%';
+    return`<div style="display:flex;flex-direction:column;gap:3px;min-width:170px">
+      <div style="font-size:9px;color:var(--text3);font-weight:700;letter-spacing:.5px">FRONT</div>
+      <select onchange="qbU(${i},'fabric_code',this.value)" style="${s}">${fabOptsDoubleRoller(r.fabric_code)}</select>
+      <div style="font-size:9px;color:var(--text3);font-weight:700;letter-spacing:.5px">BACK</div>
+      <select onchange="qbU(${i},'fabric_code_2',this.value)" style="${s}">${fabOptsDoubleRoller(r.fabric_code_2||'')}</select>
+    </div>`;
+  }
+  return`<select onchange="qbU(${i},'fabric_code',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;max-width:200px">${fabOptsByCat(r.blind_type,r.fabric_code)}</select>`;
 }
 function qbRenderRows(){
   const fo=FRACS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
@@ -847,7 +866,7 @@ function qbRenderRows(){
     const lineTotal=lt-ld;
     return`<tr>
       <td class="muted">${i+1}</td>
-      <td><input value="${r.location||''}" onchange="qbU(${i},'location',this.value)" style="width:110px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"/></td>
+      <td><input value="${r.location||''}" onchange="qbU(${i},'location',this.value)" list="loc-list" placeholder="Room..." style="width:130px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"/></td>
       <td><select onchange="qbU(${i},'blind_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
         ${BLIND_TYPES.map(t=>`<option ${r.blind_type===t?'selected':''}>${t}</option>`).join('')}
       </select></td>
@@ -863,12 +882,30 @@ function qbRenderRows(){
         <input type="number" value="${r.length_in}" onchange="qbU(${i},'length_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:40px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center"/>
         <select onchange="qbU(${i},'length_frac',parseFloat(this.value)||0);qbCalcTotals()" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;width:50px">${fo.replace(`value="${r.length_frac}"`,`value="${r.length_frac}" selected`)}</select>
       </td>
-      <td><select onchange="qbU(${i},'control_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+      <td>${r.blind_type==='Double Roller'?`
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <div style="font-size:9px;color:var(--text3);font-weight:700">FRONT</div>
+          <select onchange="qbU(${i},'control_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:11px">
+            ${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.']].map(([v,l])=>`<option value="${v}" ${r.control_type===v?'selected':''}>${l}</option>`).join('')}
+          </select>
+          <div style="font-size:9px;color:var(--text3);font-weight:700">BACK</div>
+          <select onchange="qbU(${i},'control_type_2',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:11px">
+            ${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.']].map(([v,l])=>`<option value="${v}" ${r.control_type_2===v?'selected':''}>${l}</option>`).join('')}
+          </select>
+        </div>`:`<select onchange="qbU(${i},'control_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
         ${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.']].map(([v,l])=>`<option value="${v}" ${r.control_type===v?'selected':''}>${l}</option>`).join('')}
-      </select></td>
-      <td><select onchange="qbU(${i},'lr_side',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+      </select>`}</td>
+      <td>${r.blind_type==='Double Roller'?`
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <select onchange="qbU(${i},'lr_side',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:11px">
+            <option value="R" ${r.lr_side==='R'?'selected':''}>R</option><option value="L" ${r.lr_side==='L'?'selected':''}>L</option>
+          </select>
+          <select onchange="qbU(${i},'lr_side_2',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:11px">
+            <option value="R" ${r.lr_side_2==='R'?'selected':''}>R</option><option value="L" ${r.lr_side_2==='L'?'selected':''}>L</option>
+          </select>
+        </div>`:`<select onchange="qbU(${i},'lr_side',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
         <option value="R" ${r.lr_side==='R'?'selected':''}>R</option><option value="L" ${r.lr_side==='L'?'selected':''}>L</option>
-      </select></td>
+      </select>`}</td>
       <td><select onchange="qbU(${i},'mount_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
         <option value="in" ${r.mount_type==='in'?'selected':''}>Inside</option><option value="out" ${r.mount_type==='out'?'selected':''}>Outside</option>
       </select></td>
@@ -889,59 +926,88 @@ function qbFabricCardCell(i,r){
   if(r.blind_type==='Honeycomb'){
     return`<div class="qb-card-field"><label>Custom Code</label><input value="${r.hc_custom||''}" onchange="qbU(${i},'hc_custom',this.value)" maxlength="10" placeholder="10 char max"/></div>`;
   }
-  const cat=r.blind_type==='Double Roller'?'Roller':r.blind_type;
-  return`<div class="qb-card-field full"><label>Fabric Code</label><select onchange="qbU(${i},'fabric_code',this.value)">${fabOptsByCat(cat,r.fabric_code)}</select></div>`;
+  if(r.blind_type==='Double Roller'){
+    return`<div class="qb-card-field full"><label>Front Fabric</label><select onchange="qbU(${i},'fabric_code',this.value)">${fabOptsDoubleRoller(r.fabric_code)}</select></div>
+    <div class="qb-card-field full"><label>Back Fabric</label><select onchange="qbU(${i},'fabric_code_2',this.value)">${fabOptsDoubleRoller(r.fabric_code_2||'')}</select></div>`;
+  }
+  return`<div class="qb-card-field full"><label>Fabric Code</label><select onchange="qbU(${i},'fabric_code',this.value)">${fabOptsByCat(r.blind_type,r.fabric_code)}</select></div>`;
 }
 function qbRenderCards(){
   const el=$('qb_cards');if(!el)return;
   const fo=FRACS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  const ctrlOpts=(sel)=>[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.']].map(([v,l])=>`<option value="${v}" ${sel===v?'selected':''}>${l}</option>`).join('');
+  const lrOpts=(sel)=>`<option value="R" ${sel==='R'?'selected':''}>Right</option><option value="L" ${sel==='L'?'selected':''}>Left</option>`;
   el.innerHTML=_qb.items.map((r,i)=>{
     const lt=(r.unit_price||0)*(r.qty||1);
     const ld=lt*((r.discount_pct||0)/100);
     const lineTotal=lt-ld;
+    // Fabric row
+    let fabricRow='';
+    if(r.blind_type==='Honeycomb'){
+      fabricRow=`<div class="qbc-field qbc-grow"><label>Custom Code</label><input value="${r.hc_custom||''}" onchange="qbU(${i},'hc_custom',this.value)" maxlength="10" placeholder="Custom code" style="max-width:160px"/></div>`;
+    } else if(r.blind_type==='Double Roller'){
+      fabricRow=`<div class="qbc-field qbc-grow"><label>Front Fabric</label><select onchange="qbU(${i},'fabric_code',this.value)">${fabOptsDoubleRoller(r.fabric_code)}</select></div>
+        <div class="qbc-field qbc-grow"><label>Back Fabric</label><select onchange="qbU(${i},'fabric_code_2',this.value)">${fabOptsDoubleRoller(r.fabric_code_2||'')}</select></div>`;
+    } else {
+      fabricRow=`<div class="qbc-field qbc-grow"><label>Fabric</label><select onchange="qbU(${i},'fabric_code',this.value)">${fabOptsByCat(r.blind_type,r.fabric_code)}</select></div>`;
+    }
+    // Controls row
+    let ctrlRow='';
+    if(r.blind_type==='Double Roller'){
+      ctrlRow=`<div class="qbc-field"><label>Front Control</label><select onchange="qbU(${i},'control_type',this.value)">${ctrlOpts(r.control_type)}</select></div>
+        <div class="qbc-field"><label>Front L/R</label><select style="width:74px" onchange="qbU(${i},'lr_side',this.value)">${lrOpts(r.lr_side)}</select></div>
+        <div class="qbc-vsep"></div>
+        <div class="qbc-field"><label>Back Control</label><select onchange="qbU(${i},'control_type_2',this.value)">${ctrlOpts(r.control_type_2)}</select></div>
+        <div class="qbc-field"><label>Back L/R</label><select style="width:74px" onchange="qbU(${i},'lr_side_2',this.value)">${lrOpts(r.lr_side_2)}</select></div>`;
+    } else {
+      ctrlRow=`<div class="qbc-field"><label>Control</label><select onchange="qbU(${i},'control_type',this.value)">${ctrlOpts(r.control_type)}</select></div>
+        <div class="qbc-field"><label>L/R</label><select style="width:74px" onchange="qbU(${i},'lr_side',this.value)">${lrOpts(r.lr_side)}</select></div>`;
+    }
     return`<div class="qb-card">
-      <div class="qb-card-head">
-        <strong>Item ${i+1}${r.location?' — '+r.location:''}${r.fabric_code?' ('+r.fabric_code+')':''}</strong>
-        <div class="qb-card-actions">
-          <button class="btn bg bxs" onclick="qbDupRow(${i})">Copy</button>
-          <button class="btn bg bxs" style="color:var(--red)" onclick="qbDelRow(${i})">X</button>
+      <div class="qbc-head">
+        <span class="qbc-num">${i+1}</span>
+        <input class="qbc-loc" value="${r.location||''}" onchange="qbU(${i},'location',this.value)" list="loc-list" placeholder="Room or location..."/>
+        <select class="qbc-type" onchange="qbU(${i},'blind_type',this.value)">
+          ${BLIND_TYPES.map(t=>`<option ${r.blind_type===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+        <div class="qbc-btns">
+          <button class="btn bg bxs" onclick="qbDupRow(${i})" style="padding:4px 10px;font-size:12px">Copy</button>
+          <button class="btn bg bxs" style="color:var(--red);padding:4px 10px;font-size:12px" onclick="qbDelRow(${i})">✕</button>
         </div>
       </div>
-      <div class="qb-card-grid">
-        <div class="qb-card-field full"><label>Location</label><input value="${r.location||''}" onchange="qbU(${i},'location',this.value)"/></div>
-        <div class="qb-card-field"><label>Type</label><select onchange="qbU(${i},'blind_type',this.value)">
-          ${BLIND_TYPES.map(t=>`<option ${r.blind_type===t?'selected':''}>${t}</option>`).join('')}
-        </select></div>
-        ${qbFabricCardCell(i,r)}
-        <div class="qb-card-field"><label>Cassette</label><select onchange="qbU(${i},'cassette_colour',this.value)">
+      <div class="qbc-row">${fabricRow}</div>
+      <div class="qbc-row">
+        <div class="qbc-field"><label>Width</label>
+          <div style="display:flex;gap:4px">
+            <input type="number" value="${r.width_in}" style="width:52px" onchange="qbU(${i},'width_in',parseFloat(this.value)||0);qbCalcTotals()"/>
+            <select style="width:62px" onchange="qbU(${i},'width_frac',parseFloat(this.value)||0);qbCalcTotals()">${fo.replace(`value="${r.width_frac}"`,`value="${r.width_frac}" selected`)}</select>
+          </div>
+        </div>
+        <div class="qbc-field"><label>Height</label>
+          <div style="display:flex;gap:4px">
+            <input type="number" value="${r.length_in}" style="width:52px" onchange="qbU(${i},'length_in',parseFloat(this.value)||0);qbCalcTotals()"/>
+            <select style="width:62px" onchange="qbU(${i},'length_frac',parseFloat(this.value)||0);qbCalcTotals()">${fo.replace(`value="${r.length_frac}"`,`value="${r.length_frac}" selected`)}</select>
+          </div>
+        </div>
+        <div class="qbc-field"><label>Cassette</label><select onchange="qbU(${i},'cassette_colour',this.value)">
           ${['White','Black','Grey','Silver','Mill'].map(c=>`<option ${r.cassette_colour===c?'selected':''}>${c}</option>`).join('')}
         </select></div>
-        <div class="qb-card-field"><label>Control</label><select onchange="qbU(${i},'control_type',this.value)">
-          ${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.']].map(([v,l])=>`<option value="${v}" ${r.control_type===v?'selected':''}>${l}</option>`).join('')}
+        <div class="qbc-field"><label>Mount</label><select onchange="qbU(${i},'mount_type',this.value)">
+          <option value="in" ${r.mount_type==='in'?'selected':''}>Inside</option>
+          <option value="out" ${r.mount_type==='out'?'selected':''}>Outside</option>
         </select></div>
-        <div class="qb-card-field"><label>Width</label>
-          <div style="display:flex;gap:4px">
-            <input type="number" value="${r.width_in}" onchange="qbU(${i},'width_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:50%"/>
-            <select onchange="qbU(${i},'width_frac',parseFloat(this.value)||0);qbCalcTotals()" style="width:50%">${fo.replace(`value="${r.width_frac}"`,`value="${r.width_frac}" selected`)}</select>
-          </div>
-        </div>
-        <div class="qb-card-field"><label>Height</label>
-          <div style="display:flex;gap:4px">
-            <input type="number" value="${r.length_in}" onchange="qbU(${i},'length_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:50%"/>
-            <select onchange="qbU(${i},'length_frac',parseFloat(this.value)||0);qbCalcTotals()" style="width:50%">${fo.replace(`value="${r.length_frac}"`,`value="${r.length_frac}" selected`)}</select>
-          </div>
-        </div>
-        <div class="qb-card-field"><label>L/R</label><select onchange="qbU(${i},'lr_side',this.value)">
-          <option value="R" ${r.lr_side==='R'?'selected':''}>Right</option><option value="L" ${r.lr_side==='L'?'selected':''}>Left</option>
-        </select></div>
-        <div class="qb-card-field"><label>Mount</label><select onchange="qbU(${i},'mount_type',this.value)">
-          <option value="in" ${r.mount_type==='in'?'selected':''}>Inside</option><option value="out" ${r.mount_type==='out'?'selected':''}>Outside</option>
-        </select></div>
-        <div class="qb-card-field"><label>Qty</label><input type="number" value="${r.qty||1}" min="1" onchange="qbU(${i},'qty',parseInt(this.value)||1);qbCalcTotals()"/></div>
-        <div class="qb-card-field"><label>Price</label><input type="number" value="${fn(r.unit_price,2)}" step="0.01" onchange="qbU(${i},'unit_price',parseFloat(this.value)||0);qbCalcTotals()"/></div>
-        <div class="qb-card-field"><label>Discount %</label><input type="number" value="${fn(r.discount_pct,2)}" min="0" max="100" step="0.5" onchange="qbU(${i},'discount_pct',parseFloat(this.value)||0);qbCalcTotals()"/></div>
       </div>
-      <div class="qb-card-total"><span>Line Total</span><strong>$${fn(lineTotal,2)}</strong></div>
+      <div class="qbc-row">
+        ${ctrlRow}
+        <div class="qbc-vsep"></div>
+        <div class="qbc-field"><label>Qty</label><input type="number" value="${r.qty||1}" min="1" style="width:52px" onchange="qbU(${i},'qty',parseInt(this.value)||1);qbCalcTotals()"/></div>
+        <div class="qbc-field"><label>Price ($)</label><input type="number" value="${fn(r.unit_price,2)}" step="0.01" style="width:82px" onchange="qbU(${i},'unit_price',parseFloat(this.value)||0);qbCalcTotals()"/></div>
+        <div class="qbc-field"><label>Disc %</label><input type="number" value="${fn(r.discount_pct,2)}" min="0" max="100" step="0.5" style="width:60px" onchange="qbU(${i},'discount_pct',parseFloat(this.value)||0);qbCalcTotals()"/></div>
+        <div class="qbc-field" style="margin-left:auto;align-items:flex-end">
+          <label>Line Total</label>
+          <span class="qbc-foot-val">$${fn(lineTotal,2)}</span>
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -950,15 +1016,8 @@ function qbU(i,key,val){
   // When type changes, reset fabric_code and re-render for new dropdown options
   if(key==='blind_type'){
     _qb.items[i].fabric_code='';
+    _qb.items[i].fabric_code_2='';
     _qb.items[i].hc_custom='';
-    // Double Roller: auto-add a paired row if not already there
-    if(val==='Double Roller'){
-      const r=_qb.items[i];
-      const next=_qb.items[i+1];
-      if(!next||next.blind_type!=='Double Roller'||next.location!==r.location+'(2)'){
-        _qb.items.splice(i+1,0,{...r,blind_type:'Double Roller',fabric_code:'',location:(r.location||'')+'(2)'});
-      }
-    }
     qbRenderRows();qbCalcTotals();return;
   }
   // Auto-price from lookup table when width or height changes (same prices for all types)
@@ -966,12 +1025,12 @@ function qbU(i,key,val){
     const r=_qb.items[i];
     if(r.width_in>0&&r.length_in>0){
       const p=priceLookup(r.width_in,r.width_frac,r.length_in,r.length_frac);
-      if(p>0){r.unit_price=p;qbRenderRows();}
+      if(p>0){r.unit_price=r.blind_type==='Double Roller'?p*2:p;qbRenderRows();}
     }
   }
 }
 function qbAddRow(){
-  _qb.items.push({location:'',blind_type:'Zebra',fabric_code:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',mount_type:'in',qty:1,unit_price:0,discount_pct:0});
+  _qb.items.push({location:'',blind_type:'Zebra',fabric_code:'',fabric_code_2:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',control_type_2:'chain',lr_side_2:'L',mount_type:'in',qty:1,unit_price:0,discount_pct:0});
   qbRenderRows();qbCalcTotals();
 }
 function qbDupRow(i){_qb.items.splice(i+1,0,{..._qb.items[i]});qbRenderRows();qbCalcTotals();}
