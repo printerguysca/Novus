@@ -494,12 +494,16 @@ async function rDash(){
 // ── JOBS ──
 function _renderJobs(jobs){
   if(can('owner','admin','sales'))$('tactions').innerHTML=`<button class="btn bsec bsm" onclick="mUploadCSV()">Upload CSV</button><button class="btn bp bsm" onclick="mNewJob()">New Job</button>`;
+  let _jFilter='all';
   function render(f){
-    const list=f==='all'?jobs:jobs.filter(j=>j.status===f);
+    _jFilter=f;
+    const s=($('js_s')?.value||'').toLowerCase();
+    const list=(f==='all'?jobs:jobs.filter(j=>j.status===f))
+      .filter(j=>!s||[j.job_number,j.client_name,j.rep].some(v=>(v||'').toLowerCase().includes(s)));
     const tbody=$('jt');if(!tbody)return;
     tbody.innerHTML=list.length?list.map(j=>`<tr><td><a style="color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none" onclick="nav('job-detail',${j.id})">${j.job_number}</a></td><td><strong>${j.client_name||'—'}</strong><br><span style="font-size:11px;color:var(--text3)">${j.client_address||''}</span></td><td class="muted">${j.rep||'—'}</td><td class="muted">${fd(j.date_in)}</td><td class="muted">${fd(j.date_due)}</td><td><span class="badge bbl">${j.window_count||0} windows</span></td><td>${sb(j.status)}</td><td style="display:flex;gap:4px"><button class="btn bsec bxs" onclick="nav('job-detail',${j.id})">Open</button>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="dJob(${j.id})">Delete</button>`:''}</td></tr>`).join(''):emp('No jobs found','');
   }
-  $('content').innerHTML=`<div class="tabs" id="jf">${['all','new','measured','in_production','ready','installed'].map(s=>`<button class="tab ${s==='all'?'active':''}" data-s="${s}" onclick="setJF('${s}')">${s==='all'?'All Jobs':s.replace('_',' ')}</button>`).join('')}</div><div class="card"><div class="tw"><table><thead><tr><th>Job #</th><th>Client</th><th>Rep</th><th>Date In</th><th>Due</th><th>Windows</th><th>Status</th><th>Actions</th></tr></thead><tbody id="jt"></tbody></table></div></div>`;
+  $('content').innerHTML=`<div class="tabs" id="jf">${['all','new','measured','in_production','ready','installed'].map(s=>`<button class="tab ${s==='all'?'active':''}" data-s="${s}" onclick="setJF('${s}')">${s==='all'?'All Jobs':s.replace('_',' ')}</button>`).join('')}</div><div class="card"><div class="ch"><h2 style="margin:0">Jobs</h2><input id="js_s" placeholder="Search job #, client, rep…" oninput="render(_jFilter)" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;width:220px"/></div><div class="tw"><table><thead><tr><th>Job #</th><th>Client</th><th>Rep</th><th>Date In</th><th>Due</th><th>Windows</th><th>Status</th><th>Actions</th></tr></thead><tbody id="jt"></tbody></table></div></div>`;
   render('all');
   window.setJF=f=>{document.querySelectorAll('#jf .tab').forEach(b=>b.classList.toggle('active',b.dataset.s===f));render(f);};
   window.dJob=async id=>{if(!confirm('Delete this job?'))return;await del('/api/jobs/'+id);toast('Job deleted');pcInvalidate('jobs');rJobs();};
@@ -534,7 +538,7 @@ async function rJobDetail(id){
   let ri=0;if(needFabs)_fabs=rest[ri++];if(needProfs)_profs=rest[ri++];
   $('ptitle').textContent=_cJob.job_number;
   const ce=can('owner','admin','sales','warehouse'),cc=can('owner','admin','warehouse','factory');
-  $('tactions').innerHTML=`${ce?`<select class="btn bsec bsm" style="font-weight:600" onchange="updJS(${id},this.value)">${['new','measured','in_production','ready','installed'].map(s=>`<option value="${s}" ${_cJob.status===s?'selected':''}>${{new:'New',measured:'Measured',in_production:'In Production',ready:'Ready',installed:'Installed'}[s]}</option>`).join('')}</select>`:''}${cc?`<button class="btn bsec bsm" onclick="printS(${id},'fabric')">Fabric Sheet</button><button class="btn bsec bsm" onclick="printS(${id},'hardware')">Hardware Sheet</button><button class="btn bsec bsm" onclick="printAssembly(${id})">Assembly Sheet</button>`:''}${ce?`<button class="btn bp bsm" onclick="mAddWin(${id})">Add Window</button>`:''}`;
+  $('tactions').innerHTML=`${_cJob.quote_id?`<button class="btn bsec bsm" onclick="nav('quote-edit',${_cJob.quote_id})">View Quote</button>`:''}${ce?`<select class="btn bsec bsm" style="font-weight:600" onchange="updJS(${id},this.value)">${['new','measured','in_production','ready','installed'].map(s=>`<option value="${s}" ${_cJob.status===s?'selected':''}>${{new:'New',measured:'Measured',in_production:'In Production',ready:'Ready',installed:'Installed'}[s]}</option>`).join('')}</select>`:''}${cc?`<button class="btn bsec bsm" onclick="printS(${id},'fabric')">Fabric Sheet</button><button class="btn bsec bsm" onclick="printS(${id},'hardware')">Hardware Sheet</button><button class="btn bsec bsm" onclick="printAssembly(${id})">Assembly Sheet</button>`:''}${ce?`<button class="btn bp bsm" onclick="mAddWin(${id})">Add Window</button>`:''}`;
   const j=_cJob;
   $('content').innerHTML=`<div class="card"><div style="padding:14px 18px"><div class="ig"><div><div class="ibl">Client</div><div class="ibv">${j.client_name||'—'}</div><div class="ibsb">${j.client_address||''}</div></div><div><div class="ibl">Contact</div><div class="ibv">${j.contact||'—'}</div><div class="ibsb">${j.phone||''}</div></div><div><div class="ibl">Rep / Date In</div><div class="ibv">${j.rep||'—'}</div><div class="ibsb">${fd(j.date_in)}</div></div><div><div class="ibl">Due / Status</div><div class="ibv">${fd(j.date_due)}</div><div style="margin-top:5px">${sb(j.status)}</div></div></div></div></div>
   <div class="card"><div class="ch"><h2>Windows (${j.windows.length})</h2>${ce?`<button class="btn bp bsm" onclick="mAddWin(${id})">Add Window</button>`:''}</div><div class="tw"><table><thead><tr><th>#</th><th>Location</th><th>Fabric</th><th>Profile</th><th>Width</th><th>Length</th><th>Mount</th><th>Control</th>${cc?`<th>Cassette Cut</th><th>Bottom Rail</th><th>Fabric Width</th><th>Fabric Drop</th>`:''}<th>Production</th><th>Cord</th><th>Brackets</th><th></th></tr></thead><tbody id="wt"></tbody></table></div></div>`;
@@ -598,7 +602,7 @@ async function printS(id,type){
   w.document.write(`<!DOCTYPE html><html><head><title>${title} — ${job.job_number}</title><style>*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,sans-serif;}body{padding:26px;background:#fff;font-size:12px;color:#000;}.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid ${col};}.ht{font-size:20px;font-weight:800;color:${col};}.hs{font-size:11px;color:#555;margin-top:2px;}.hc{display:inline-block;background:${col};color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;margin-top:6px;}.hcl{text-align:right;font-size:11px;line-height:1.7;}table{width:100%;border-collapse:collapse;margin-top:12px;}th{background:${col};color:#fff;padding:7px 9px;font-size:10px;text-align:left;text-transform:uppercase;letter-spacing:.4px;}td{padding:7px 9px;border-bottom:1px solid #e5e7eb;font-size:11px;}tr:nth-child(even)td{background:#f9fafb;}.cut{font-weight:700;font-family:monospace;font-size:12px;color:${col};background:${bg2};padding:1px 5px;border-radius:3px;}.ft{margin-top:14px;padding-top:10px;border-top:1px solid #ddd;font-size:10px;color:#666;display:flex;justify-content:space-between;}@media print{body{padding:14px}}</style></head><body>
   <div class="hdr"><div><div class="ht">${title}</div><div class="hs">${sub}</div><div class="hc">${job.job_number}</div></div><div class="hcl"><strong style="font-size:13px">${job.client_name||'—'}</strong><br>${job.client_address||''}<br>In: ${fd(job.date_in)} &nbsp; Due: ${fd(job.date_due)}<br>Rep: ${job.rep||'—'}</div></div>
   <table><thead><tr>${iF?`<th>#</th><th>Location</th><th>Code</th><th>Fabric Name</th><th>Slat"</th><th>CUT WIDTH</th><th>CUT DROP</th><th>Metres</th><th>Cassette</th>`:`<th>#</th><th>Location</th><th>Profile</th><th>Type</th><th>CASSETTE CUT</th><th>CORE ROLLER</th><th>BOTTOM RAIL</th><th>BOTTOM CORE</th><th>Mount</th><th>Brackets</th><th>Cord</th><th>Control</th>`}</tr></thead>
-  <tbody>${windows.map(w=>iF?`<tr><td>${w.window_no}</td><td>${w.location||'—'}</td><td><strong>${w.catalogue_no||'—'}</strong></td><td>${w.fabric_alias||'—'}</td><td>${w.slat_size||'—'}"</td><td class="cut">${toFrac(w.cut_fabric_width)}</td><td class="cut">${toFrac(w.cut_fabric_drop)}</td><td class="cut">${fn(w.fabric_meters,3)} m</td><td>${w.cassette_colour||'—'}</td></tr>`:`<tr><td>${w.window_no}</td><td>${w.location||'—'}</td><td><strong>${w.profile_code||'—'}</strong></td><td>${(w.blind_type||'').toUpperCase()}</td><td class="cut">${w.cut_cassette!=null?toFrac(w.cut_cassette):'N/A'}</td><td class="cut">${toFrac(w.cut_roller)}</td><td class="cut">${toFrac(w.cut_bottom_rail)}</td><td class="cut">${w.cut_bottom_core?toFrac(w.cut_bottom_core):'N/A'}</td><td>${w.mount_type==='in'||w.mount_type==='I'?'Inside':'Outside'}</td><td>${w.bracket_count||0}×</td><td>${w.cord_wand_size||'—'}</td><td>${w.control_type||'—'} ${w.lr_side||''}</td></tr>`).join('')}</tbody></table>
+  <tbody>${windows.map(w=>{const isDR=(w.blind_type||'').toLowerCase()==='double roller';if(iF){const mainRow=`<tr><td>${w.window_no}</td><td>${w.location||'—'}</td><td><strong>${w.catalogue_no||'—'}</strong></td><td>${w.fabric_alias||'—'}</td><td>${w.slat_size||'—'}"</td><td class="cut">${toFrac(w.cut_fabric_width)}</td><td class="cut">${toFrac(w.cut_fabric_drop)}</td><td class="cut">${fn(w.fabric_meters,3)} m</td><td>${w.cassette_colour||'—'}</td></tr>`;const backRow=isDR&&w.fabric_code_2?`<tr style="background:#eff6ff"><td>${w.window_no}</td><td>${w.location||'—'} <em style="font-size:9px;color:#6b7280">(Back)</em></td><td><strong>${w.fabric_code_2||'—'}</strong></td><td>Back Fabric</td><td>—</td><td class="cut">${toFrac(w.cut_fabric_width)}</td><td class="cut">${toFrac(w.cut_fabric_drop)}</td><td class="cut">${fn(w.fabric_meters,3)} m</td><td>—</td></tr>`:'';return mainRow+backRow;}return `<tr><td>${w.window_no}</td><td>${w.location||'—'}</td><td><strong>${w.profile_code||'—'}</strong></td><td>${(w.blind_type||'').toUpperCase()}</td><td class="cut">${w.cut_cassette!=null?toFrac(w.cut_cassette):'N/A'}</td><td class="cut">${toFrac(w.cut_roller)}</td><td class="cut">${toFrac(w.cut_bottom_rail)}</td><td class="cut">${w.cut_bottom_core?toFrac(w.cut_bottom_core):'N/A'}</td><td>${w.mount_type==='in'||w.mount_type==='I'?'Inside':'Outside'}</td><td>${w.bracket_count||0}×</td><td>${w.cord_wand_size||'—'}</td><td>${w.control_type||'—'} ${w.lr_side||''}${isDR&&w.control_type_2?` / ${w.control_type_2} ${w.lr_side_2||''}`:''}</td></tr>`;}).join('')}</tbody></table>
   <div class="ft"><span>Windows: ${windows.length}</span><span>${iF?`Total fabric: ${windows.reduce((s,w)=>s+(parseFloat(w.fabric_meters)||0),0).toFixed(3)} m`:`${job.job_number} — ${job.client_name||''}`}</span><span>Printed: ${new Date().toLocaleString()}</span></div>
   <script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close();
 }
@@ -880,6 +884,9 @@ async function rQuoteBuilder(editId){
         <select id="qb_client" style="flex:1"><option value="">Select customer...</option>${co}</select>
         <button class="btn bsec bxs" onclick="qbNewClient()" style="white-space:nowrap;flex-shrink:0;padding:8px 12px">+ New Customer</button>
       </div>
+    </div>
+    <div class="fr2" style="margin-top:4px">
+      <div class="fg"><label>Date Due</label><input type="date" id="qb_ddue" value="${q?.date_due||''}"/></div>
     </div>
     <div class="fr2">
       <div class="fg"><label>Notes to Customer</label><textarea id="qb_cnotes" rows="3" placeholder="Thank you for your business!">${q?.customer_notes||'Thank you for your business!'}</textarea></div>
@@ -1169,7 +1176,8 @@ async function qbSave(){
     upgrades:parseFloat($('qb_upgrades').value)||0,
     amount_paid:parseFloat($('qb_paid').value)||0,
     discount_reason:$('qb_dreason').value,
-    hide_prices:$('qb_hide').checked
+    hide_prices:$('qb_hide').checked,
+    date_due:$('qb_ddue').value||null
   };
   try{
     if(_qb.editing){await api('PUT','/api/quotes/'+_qb.editing,payload);toast('Quote updated');}
@@ -1281,11 +1289,14 @@ function downloadPDF(id, type){
 }
 
 // ── FABRIC ──
-async function rFabric(){
-  _fabs=await get('/api/fabrics');
+function _rFabricRender(){
   const ro=ME.role==='sales'||ME.role==='admin';
   $('tactions').innerHTML=`<button class="btn bsec bsm" onclick="showFT()">Table</button><button class="btn bsec bsm" onclick="showFS()">Swatches</button>${!ro?`<button class="btn bsec bsm" onclick="syncCatalog()">Sync Catalog</button><button class="btn bp bsm" onclick="mAddFab()">Add Fabric</button>`:''}`;
   showFT();
+}
+async function rFabric(){
+  const cached=pcGet('fabric');if(cached){_fabs=cached;_rFabricRender();}
+  const fresh=await get('/api/fabrics');pcSet('fabric',fresh);_fabs=fresh;_rFabricRender();
 }
 function fabCatInfo(code){const f=fabByCode(code);return f?{type:f.cat,filter:f.filter,slat:f.slat}:{type:'—',filter:'—',slat:''};}
 function showFT(){
@@ -1331,12 +1342,12 @@ async function syncCatalog(){
     }catch(e){console.error('Failed to add '+f.code,e);}
   }
   toast(added+' fabrics added from catalog');
-  rFabric();
+  pcInvalidate('fabric');rFabric();
 }
 async function svFab(){
   const c=$('afc').value.trim(),n=$('afn').value.trim();if(!c||!n){toast('Code and name required','err');return;}
   await post('/api/fabrics',{catalogue_no:c,series:$('afse').value,alias:n,colour_hex:$('afh').value,slat_size:parseFloat($('afsl').value)||3,roll_qty:parseInt($('afr').value)||0,total_meters:parseFloat($('afm').value)||0});
-  closeModal();toast('Fabric added');rFabric();
+  closeModal();toast('Fabric added');pcInvalidate('fabric');rFabric();
 }
 function mEditFab(id){
   const f=_fabs.find(x=>x.id===id);if(!f)return;
@@ -1345,7 +1356,7 @@ function mEditFab(id){
     <div class="fr2"><div class="fg"><label>Name</label><input id="efn" value="${f.alias}"/></div><div class="fg"><label>Colour</label><input type="color" id="efh" value="${f.colour_hex}"/></div><div class="fg"><label>Roll Qty</label><input type="number" id="efr" value="${f.roll_qty}"/></div><div class="fg"><label>Total Meters</label><input type="number" id="efm" value="${f.total_meters}" step="0.01"/></div></div>
   </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svEFab(${id})">Save</button></div></div>`);
 }
-async function svEFab(id){await patch('/api/fabrics/'+id,{alias:$('efn').value,colour_hex:$('efh').value,roll_qty:parseInt($('efr').value),total_meters:parseFloat($('efm').value)});closeModal();toast('Updated');rFabric();}
+async function svEFab(id){await patch('/api/fabrics/'+id,{alias:$('efn').value,colour_hex:$('efh').value,roll_qty:parseInt($('efr').value),total_meters:parseFloat($('efm').value)});closeModal();toast('Updated');pcInvalidate('fabric');rFabric();}
 </script>
 <script>
 // ── HARDWARE ──
@@ -1901,10 +1912,10 @@ function csvCalcRow(i){
   const cc=(tw+pr.c).toFixed(3),cr=(tw+pr.r).toFixed(3);
   const cbr=(tw+pr.br).toFixed(3),cbc=pr.bc?(tw+pr.bc).toFixed(3):'N/A';
   const fw=(parseFloat(cbr)-0.0625).toFixed(3);
-  const cas=(r.cassette_colour||'').toLowerCase();
   const fab=r.fabric_id?_fabs.find(f=>f.id==r.fabric_id):matchFabric(r.fabric_code);
   const fc=fab?fab.catalogue_no:'';
-  const fd2=(cas==='mill'?(tl+(fab?.slat_size||3)/2-0.5):(tl+6)).toFixed(3);
+  const bt=(r.blind_type||'').toLowerCase();
+  const fd2=(bt==='zebra'?(tl+(fab?.slat_size||3)/2-0.625):(tl+6)).toFixed(3);
   const px=fc?fc[0].toUpperCase():'';
   const fm=((px==='Z'||px==='S')?parseFloat(fd2)*0.0254*2:parseFloat(fd2)*0.0254).toFixed(3);
   const ctrl=(r.control_type||'').toLowerCase();

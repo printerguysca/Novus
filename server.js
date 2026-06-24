@@ -401,7 +401,7 @@ app.get('/api/quotes/:id', requireAuth, ownerAdminSales, async (req, res) => {
   res.json({ ...q, items: items||[] });
 });
 app.post('/api/quotes', requireAuth, ownerAdminSales, async (req, res) => {
-  const { client_id, customer_notes, terms, valid_until, items, discount_pct, tax_pct,
+  const { client_id, customer_notes, terms, valid_until, date_due, items, discount_pct, tax_pct,
           markup, upgrades, amount_paid, discount_reason, hide_prices, notes } = req.body;
   const quote_number = await genNumber('quotes', 'quote_number', 'QT');
   const msrp = (items||[]).reduce((s,i) => {
@@ -417,6 +417,7 @@ app.post('/api/quotes', requireAuth, ownerAdminSales, async (req, res) => {
   const { data: q, error } = await supabase.from('quotes').insert({
     quote_number, client_id, created_by: req.user.id, subtotal: parseFloat(msrp.toFixed(2)),
     discount_pct: disc, tax_pct: tax, total, notes: notes||'', valid_until: valid_until||null,
+    date_due: date_due||null,
     customer_notes: customer_notes||'Thank you for your business!',
     terms: terms||'Payment due within 30 days.',
     markup: mk, upgrades: upg, amount_paid: parseFloat(amount_paid)||0,
@@ -441,7 +442,7 @@ app.post('/api/quotes', requireAuth, ownerAdminSales, async (req, res) => {
   res.json(q);
 });
 app.put('/api/quotes/:id', requireAuth, ownerAdminSales, async (req, res) => {
-  const { client_id, customer_notes, terms, valid_until, items, discount_pct, tax_pct,
+  const { client_id, customer_notes, terms, valid_until, date_due, items, discount_pct, tax_pct,
           markup, upgrades, amount_paid, discount_reason, hide_prices, notes, status } = req.body;
   const msrp = (items||[]).reduce((s,i) => {
     const lp = (i.unit_price||0)*(i.qty||1);
@@ -455,7 +456,8 @@ app.put('/api/quotes/:id', requireAuth, ownerAdminSales, async (req, res) => {
   const total = parseFloat((beforeTax * (1 + tax/100)).toFixed(2));
   const updates = {
     client_id, subtotal: parseFloat(msrp.toFixed(2)), discount_pct: disc, tax_pct: tax, total,
-    notes: notes||'', valid_until: valid_until||null, customer_notes: customer_notes||'',
+    notes: notes||'', valid_until: valid_until||null, date_due: date_due||null,
+    customer_notes: customer_notes||'',
     terms: terms||'', markup: mk, upgrades: upg, amount_paid: parseFloat(amount_paid)||0,
     discount_reason: discount_reason||null, hide_prices: hide_prices||false
   };
@@ -496,7 +498,10 @@ app.post('/api/quotes/:id/convert', requireAuth, ownerAdmin, async (req, res) =>
   const job_number = await genNumber('jobs', 'job_number', 'SB');
   const { data: job, error: jobErr } = await supabase.from('jobs').insert({
     job_number, client_id: q.client_id, rep_id: q.created_by, rep: req.user.name,
-    date_in: new Date().toISOString().split('T')[0], notes: `Converted from ${q.quote_number}`
+    date_in: new Date().toISOString().split('T')[0],
+    date_due: q.date_due || null,
+    quote_id: q.id,
+    notes: `Converted from ${q.quote_number}`
   }).select().single();
   if (jobErr) return res.status(500).json({ error: jobErr.message });
   // Pre-load all referenced fabrics in one query to avoid N round trips in calcCuts
@@ -531,7 +536,7 @@ app.post('/api/quotes/:id/convert', requireAuth, ownerAdmin, async (req, res) =>
         control_type_2: item.control_type_2 || null,
         lr_side_2: item.lr_side_2 || null,
         mount_type: item.mount_type || 'in',
-        notes: item.blind_type || null,
+        notes: item.notes || null,
         cut_cassette: cuts?.cut_cassette||null, cut_roller: cuts?.cut_roller||null,
         cut_bottom_rail: cuts?.cut_bottom_rail||null, cut_bottom_core: cuts?.cut_bottom_core||null,
         cut_fabric_width: cuts?.cut_fabric_width||null, cut_fabric_drop: cuts?.cut_fabric_drop||null,
@@ -970,7 +975,19 @@ app.patch('/api/windows/:id/production', requireAuth, async (req, res) => {
   const updates = {};
 
   if (action === 'start_cut') { updates.production_status = 'cutting'; }
-  else if (action === 'finish_cut') { updates.production_status = 'cut'; updates.cut_at = now; updates.cut_by = name; }
+  else if (action === 'finish_cut') {
+    updates.production_status = 'cut'; updates.cut_at = now; updates.cut_by = name;
+    // Deduct fabric from inventory
+    const { data: wf } = await supabase.from('job_windows').select('fabric_id,fabric_meters,location,job_id').eq('id', req.params.id).single();
+    if (wf?.fabric_id && wf?.fabric_meters) {
+      const { data: fab } = await supabase.from('fabrics').select('remaining,alias,catalogue_no').eq('id', wf.fabric_id).single();
+      if (fab) {
+        const newRemaining = Math.max(0, parseFloat(fab.remaining||0) - parseFloat(wf.fabric_meters));
+        await supabase.from('fabrics').update({ remaining: newRemaining }).eq('id', wf.fabric_id);
+        await logMovement('fabric', wf.fabric_id, `${fab.catalogue_no} — ${fab.alias}`, 'cut', wf.fabric_meters, wf.job_id, null, `Cut for window: ${wf.location||''}`);
+      }
+    }
+  }
   else if (action === 'start_assemble') { updates.production_status = 'assembling'; }
   else if (action === 'finish_assemble') { updates.production_status = 'assembled'; updates.assembled_at = now; updates.assembled_by = name; }
   else if (action === 'qc_pass') { updates.production_status = 'qc_pass'; updates.qc_status = 'pass'; updates.qc_at = now; updates.qc_by = name; updates.qc_notes = notes||''; }
@@ -996,6 +1013,33 @@ app.patch('/api/windows/:id/production', requireAuth, async (req, res) => {
 
   const { data: updated } = await supabase.from('production_queue').select('*').eq('id', req.params.id).single();
   res.json(updated);
+});
+
+// ─── RECALCULATE CUTS ────────────────────────────────────────────────────────
+
+app.post('/api/jobs/:id/recalculate', requireAuth, ownerAdmin, async (req, res) => {
+  const { data: windows } = await supabase.from('job_windows').select('*').eq('job_id', req.params.id);
+  if (!windows?.length) return res.json({ updated: 0 });
+  const fabricIds = [...new Set(windows.map(w => w.fabric_id).filter(Boolean))];
+  let fabricMap = {};
+  if (fabricIds.length) {
+    const { data: fabrics } = await supabase.from('fabrics').select('*').in('id', fabricIds);
+    (fabrics||[]).forEach(f => { fabricMap[f.id] = f; });
+  }
+  let updated = 0;
+  for (const w of windows) {
+    const cuts = await calcCuts({ ...w, _fabricData: w.fabric_id ? fabricMap[w.fabric_id] : null });
+    if (!cuts) continue;
+    await supabase.from('job_windows').update({
+      cut_cassette: cuts.cut_cassette, cut_roller: cuts.cut_roller,
+      cut_bottom_rail: cuts.cut_bottom_rail, cut_bottom_core: cuts.cut_bottom_core,
+      cut_fabric_width: cuts.cut_fabric_width, cut_fabric_drop: cuts.cut_fabric_drop,
+      fabric_meters: cuts.fabric_meters, cord_wand_size: cuts.cord_wand_size,
+      bracket_count: cuts.bracket_count
+    }).eq('id', w.id);
+    updated++;
+  }
+  res.json({ updated });
 });
 
 // ─── CUT SHEET ────────────────────────────────────────────────────────────────
