@@ -58,10 +58,14 @@ async function calcCuts(w) {
   // Use fabric_code text field as fallback when fabric_id not set (e.g. converted from quote)
   const fabricCode = fabric ? fabric.catalogue_no : (w.fabric_code||'');
   const prefix = fabricCode ? fabricCode[0].toUpperCase() : '';
-  // Infer blind type from fabric prefix if not explicitly set (Z/S = Zebra, else Roller)
-  const blindType = (w.blind_type||'').toLowerCase() || (prefix==='Z'||prefix==='S' ? 'zebra' : 'roller');
-  // Zebra: height + slat_size/2 - 5/8". Roller / Double Roller: height + 6"
-  const cut_fabric_drop = blindType === 'zebra'
+  const blindTypeRaw = (w.blind_type||'').toLowerCase();
+  // For Double Roller, infer each fabric's type from its own code prefix (front fabric here)
+  // For single blinds, use explicit blind_type or fall back to prefix inference
+  const effectiveType = blindTypeRaw === 'double roller'
+    ? ((prefix==='Z'||prefix==='S') ? 'zebra' : 'roller')
+    : (blindTypeRaw || (prefix==='Z'||prefix==='S' ? 'zebra' : 'roller'));
+  // Zebra: height + slat_size/2 - 5/8". Roller: height + 6"
+  const cut_fabric_drop = effectiveType === 'zebra'
     ? parseFloat((tl + (fabric?.slat_size||3)/2 - 0.625).toFixed(4))
     : parseFloat((tl + 6).toFixed(4));
   const fabric_meters = parseFloat(((prefix==='Z'||prefix==='S') ? cut_fabric_drop*0.0254*2 : cut_fabric_drop*0.0254).toFixed(4));
