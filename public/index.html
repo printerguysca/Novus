@@ -416,11 +416,12 @@ function toFrac(v){
   if(v==null||isNaN(v))return'—';
   v=parseFloat(v);const neg=v<0;if(neg)v=-v;
   const whole=Math.floor(v);const dec=v-whole;
-  // Round to nearest 1/8
-  const ei=Math.round(dec*8);
+  // Round to nearest 1/16 (cut sheet precision)
+  const ei=Math.round(dec*16);
   if(ei===0)return(neg?'-':'')+whole+'"';
-  if(ei===8)return(neg?'-':'')+(whole+1)+'"';
-  let n=ei,d=8;
+  if(ei===16)return(neg?'-':'')+(whole+1)+'"';
+  let n=ei,d=16;
+  if(n%2===0){n/=2;d/=2;}
   if(n%2===0){n/=2;d/=2;}
   if(n%2===0){n/=2;d/=2;}
   const wp=whole>0?whole+' ':'';
