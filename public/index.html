@@ -494,18 +494,18 @@ async function rDash(){
 // ── JOBS ──
 function _renderJobs(jobs){
   if(can('owner','admin','sales'))$('tactions').innerHTML=`<button class="btn bsec bsm" onclick="mUploadCSV()">Upload CSV</button><button class="btn bp bsm" onclick="mNewJob()">New Job</button>`;
-  let _jFilter='all';
-  function render(f){
-    _jFilter=f;
-    const s=($('js_s')?.value||'').toLowerCase();
-    const list=(f==='all'?jobs:jobs.filter(j=>j.status===f))
-      .filter(j=>!s||[j.job_number,j.client_name,j.rep].some(v=>(v||'').toLowerCase().includes(s)));
+  window._jJobs=jobs;window._jFilter='all';
+  window._jRender=function(f){
+    if(f!==undefined)window._jFilter=f;
+    const q=($('js_s')?.value||'').toLowerCase();
+    const list=(window._jFilter==='all'?window._jJobs:window._jJobs.filter(j=>j.status===window._jFilter))
+      .filter(j=>!q||[j.job_number,j.client_name,j.rep].some(v=>(v||'').toLowerCase().includes(q)));
     const tbody=$('jt');if(!tbody)return;
     tbody.innerHTML=list.length?list.map(j=>`<tr><td><a style="color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none" onclick="nav('job-detail',${j.id})">${j.job_number}</a></td><td><strong>${j.client_name||'—'}</strong><br><span style="font-size:11px;color:var(--text3)">${j.client_address||''}</span></td><td class="muted">${j.rep||'—'}</td><td class="muted">${fd(j.date_in)}</td><td class="muted">${fd(j.date_due)}</td><td><span class="badge bbl">${j.window_count||0} windows</span></td><td>${sb(j.status)}</td><td style="display:flex;gap:4px"><button class="btn bsec bxs" onclick="nav('job-detail',${j.id})">Open</button>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="dJob(${j.id})">Delete</button>`:''}</td></tr>`).join(''):emp('No jobs found','');
-  }
-  $('content').innerHTML=`<div class="tabs" id="jf">${['all','new','measured','in_production','ready','installed'].map(s=>`<button class="tab ${s==='all'?'active':''}" data-s="${s}" onclick="setJF('${s}')">${s==='all'?'All Jobs':s.replace('_',' ')}</button>`).join('')}</div><div class="card"><div class="ch"><h2 style="margin:0">Jobs</h2><input id="js_s" placeholder="Search job #, client, rep…" oninput="render(_jFilter)" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;width:220px"/></div><div class="tw"><table><thead><tr><th>Job #</th><th>Client</th><th>Rep</th><th>Date In</th><th>Due</th><th>Windows</th><th>Status</th><th>Actions</th></tr></thead><tbody id="jt"></tbody></table></div></div>`;
-  render('all');
-  window.setJF=f=>{document.querySelectorAll('#jf .tab').forEach(b=>b.classList.toggle('active',b.dataset.s===f));render(f);};
+  };
+  $('content').innerHTML=`<div class="tabs" id="jf">${['all','new','measured','in_production','ready','installed'].map(s=>`<button class="tab ${s==='all'?'active':''}" data-s="${s}" onclick="setJF('${s}')">${s==='all'?'All Jobs':s.replace('_',' ')}</button>`).join('')}</div><div class="card"><div class="ch"><h2 style="margin:0">Jobs</h2><input id="js_s" placeholder="Search job #, client, rep…" oninput="window._jRender()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;width:220px"/></div><div class="tw"><table><thead><tr><th>Job #</th><th>Client</th><th>Rep</th><th>Date In</th><th>Due</th><th>Windows</th><th>Status</th><th>Actions</th></tr></thead><tbody id="jt"></tbody></table></div></div>`;
+  window._jRender('all');
+  window.setJF=f=>{document.querySelectorAll('#jf .tab').forEach(b=>b.classList.toggle('active',b.dataset.s===f));window._jRender(f);};
   window.dJob=async id=>{if(!confirm('Delete this job?'))return;await del('/api/jobs/'+id);toast('Job deleted');pcInvalidate('jobs');rJobs();};
 }
 async function rJobs(){
