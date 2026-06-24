@@ -55,14 +55,15 @@ async function calcCuts(w) {
     fabric = data;
   }
   const cassette = (w.cassette_colour||'').toLowerCase();
-  const blindType = (w.blind_type||'').toLowerCase();
   // Use fabric_code text field as fallback when fabric_id not set (e.g. converted from quote)
   const fabricCode = fabric ? fabric.catalogue_no : (w.fabric_code||'');
+  const prefix = fabricCode ? fabricCode[0].toUpperCase() : '';
+  // Infer blind type from fabric prefix if not explicitly set (Z/S = Zebra, else Roller)
+  const blindType = (w.blind_type||'').toLowerCase() || (prefix==='Z'||prefix==='S' ? 'zebra' : 'roller');
   // Zebra: height + slat_size/2 - 5/8". Roller / Double Roller: height + 6"
   const cut_fabric_drop = blindType === 'zebra'
     ? parseFloat((tl + (fabric?.slat_size||3)/2 - 0.625).toFixed(4))
     : parseFloat((tl + 6).toFixed(4));
-  const prefix = fabricCode ? fabricCode[0].toUpperCase() : '';
   const fabric_meters = parseFloat(((prefix==='Z'||prefix==='S') ? cut_fabric_drop*0.0254*2 : cut_fabric_drop*0.0254).toFixed(4));
   const ctrl = (w.control_type||'').toLowerCase();
   const cord_wand_size = ctrl.startsWith('m') ? 'None' : tl<30 ? 'S' : tl<45 ? 'M' : 'L';
