@@ -420,10 +420,7 @@ function toFrac(v){
   const ei=Math.round(dec*16);
   if(ei===0)return(neg?'-':'')+whole+'"';
   if(ei===16)return(neg?'-':'')+(whole+1)+'"';
-  let n=ei,d=16;
-  if(n%2===0){n/=2;d/=2;}
-  if(n%2===0){n/=2;d/=2;}
-  if(n%2===0){n/=2;d/=2;}
+  const n=ei,d=16;
   const wp=whole>0?whole+' ':'';
   return(neg?'-':'')+wp+n+'/'+d+'"';
 }
