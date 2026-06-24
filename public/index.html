@@ -679,7 +679,15 @@ body{padding:24px;background:#fff;font-size:11px;color:#000;}
   <div class="sb"><div class="sbl">Date Due</div><div class="sbv" style="font-size:13px">${fd(job.date_due)}</div></div>
 </div>
 
-${windows.map(w=>`
+${windows.map(w=>{
+  const isDR=(w.blind_type||'').toLowerCase()==='double roller';
+  const backFab=isDR&&w.fabric_code_2?_fabs.find(f=>f.catalogue_no===w.fabric_code_2):null;
+  const tla=(parseFloat(w.length_in)||0)+(parseFloat(w.length_frac)||0);
+  const bpx=w.fabric_code_2?(w.fabric_code_2[0]||'').toUpperCase():'';
+  const bIsZ=bpx==='Z'||bpx==='S';
+  const bDrop=isDR&&w.fabric_code_2?(bIsZ?tla+(backFab?.slat_size||3)/2-0.625:tla+6):0;
+  const bM=isDR&&w.fabric_code_2?parseFloat((bIsZ?bDrop*0.0254*2:bDrop*0.0254).toFixed(3)):0;
+  return`
 <div class="wcard">
   <div class="wh">
     <div><span class="wn">Window ${w.window_no}</span> <span class="wloc">${w.location||''}</span></div>
@@ -687,22 +695,28 @@ ${windows.map(w=>`
   </div>
   <div class="wbody">
     <div class="dg">
-      <div class="di"><div class="dl">Fabric Code</div><div class="dv">${w.catalogue_no||'—'}</div></div>
-      <div class="di"><div class="dl">Fabric Name</div><div class="dv">${w.fabric_alias||'—'}</div></div>
+      <div class="di"><div class="dl">${isDR?'Front Code':'Fabric Code'}</div><div class="dv">${w.catalogue_no||'—'}</div></div>
+      <div class="di"><div class="dl">${isDR?'Front Name':'Fabric Name'}</div><div class="dv">${w.fabric_alias||'—'}</div></div>
       <div class="di"><div class="dl">Cassette Colour</div><div class="dv">${w.cassette_colour||'—'}</div></div>
       <div class="di"><div class="dl">Slat Size</div><div class="dv">${w.slat_size||'—'}"</div></div>
     </div>
+    ${isDR&&w.fabric_code_2?`<div class="dg" style="background:#eff6ff;border-radius:5px;padding:6px;margin-bottom:4px">
+      <div class="di"><div class="dl" style="color:#1d4ed8">Back Code</div><div class="dv">${w.fabric_code_2}</div></div>
+      <div class="di"><div class="dl" style="color:#1d4ed8">Back Name</div><div class="dv">${backFab?.alias||'—'}</div></div>
+      <div class="di"><div class="dl" style="color:#1d4ed8">Back Slat</div><div class="dv">${backFab?.slat_size||'—'}"</div></div>
+      <div class="di"><div class="dl" style="color:#1d4ed8">Back Control</div><div class="dv">${ctrlLabel(w.control_type_2)} ${w.lr_side_2||''}</div></div>
+    </div>`:''}
     <div class="dg">
       <div class="di"><div class="dl">Order Width</div><div class="dv">${toFrac((w.width_in||0)+(w.width_frac||0))}</div></div>
       <div class="di"><div class="dl">Order Drop</div><div class="dv">${toFrac((w.length_in||0)+(w.length_frac||0))}</div></div>
       <div class="di"><div class="dl">Mount</div><div class="dv">${w.mount_type==='in'||w.mount_type==='I'?'Inside':'Outside'}</div></div>
-      <div class="di"><div class="dl">Control Type</div><div class="dv">${ctrlLabel(w.control_type)}</div></div>
+      <div class="di"><div class="dl">${isDR?'Front Control':'Control Type'}</div><div class="dv">${ctrlLabel(w.control_type)} ${w.lr_side||''}</div></div>
     </div>
     <div class="dg">
-      <div class="di"><div class="dl">Control Side</div><div class="dv">${w.lr_side||'—'}</div></div>
       <div class="di"><div class="dl">Brackets</div><div class="dv">${w.bracket_count||0}×</div></div>
       <div class="di"><div class="dl">Cord / Wand</div><div class="dv">${w.cord_wand_size||'—'}</div></div>
-      <div class="di"><div class="dl">Fabric Metres</div><div class="dv">${fn(w.fabric_meters,3)} m</div></div>
+      <div class="di"><div class="dl">${isDR?'Front Metres':'Fabric Metres'}</div><div class="dv">${fn(w.fabric_meters,3)} m</div></div>
+      ${isDR&&w.fabric_code_2?`<div class="di"><div class="dl" style="color:#1d4ed8">Back Metres</div><div class="dv">${fn(bM,3)} m</div></div>`:`<div class="di"></div>`}
     </div>
     <div class="dg">
       <div class="di"><div class="dl">Cassette Cut</div><div class="dv cut">${w.cut_cassette!=null?toFrac(w.cut_cassette):'N/A'}</div></div>
@@ -711,17 +725,20 @@ ${windows.map(w=>`
       <div class="di"><div class="dl">Bottom Core</div><div class="dv cut">${w.cut_bottom_core?toFrac(w.cut_bottom_core):'N/A'}</div></div>
     </div>
     <div class="dg">
-      <div class="di"><div class="dl">Fabric Cut Width</div><div class="dv cut">${toFrac(w.cut_fabric_width)}</div></div>
-      <div class="di"><div class="dl">Fabric Cut Drop</div><div class="dv cut">${toFrac(w.cut_fabric_drop)}</div></div>
+      <div class="di"><div class="dl">${isDR?'Front Cut Width':'Fabric Cut Width'}</div><div class="dv cut">${toFrac(w.cut_fabric_width)}</div></div>
+      <div class="di"><div class="dl">${isDR?'Front Cut Drop':'Fabric Cut Drop'}</div><div class="dv cut">${toFrac(w.cut_fabric_drop)}</div></div>
+      ${isDR&&w.fabric_code_2?`<div class="di"><div class="dl" style="color:#1d4ed8">Back Cut Width</div><div class="dv cut" style="color:#1d4ed8">${toFrac(w.cut_fabric_width)}</div></div>
+      <div class="di"><div class="dl" style="color:#1d4ed8">Back Cut Drop</div><div class="dv cut" style="color:#1d4ed8">${toFrac(bDrop)}</div></div>`:''}
     </div>
 
     <div class="sec">Assembler Checklist</div>
     <div class="chk">
-      <div class="ci"><div class="cb"></div><div class="cl">Fabric correct &amp; matches code</div></div>
+      <div class="ci"><div class="cb"></div><div class="cl">${isDR?'Front fabric':'Fabric'} correct &amp; matches code (${w.catalogue_no||'—'})</div></div>
+      ${isDR&&w.fabric_code_2?`<div class="ci"><div class="cb"></div><div class="cl">Back fabric correct &amp; matches code (${w.fabric_code_2})</div></div>`:''}
       <div class="ci"><div class="cb"></div><div class="cl">Cut dimensions verified</div></div>
       <div class="ci"><div class="cb"></div><div class="cl">Cassette colour correct</div></div>
-      <div class="ci"><div class="cb"></div><div class="cl">Control type: ${ctrlLabel(w.control_type)}</div></div>
-      <div class="ci"><div class="cb"></div><div class="cl">Control side: ${w.lr_side||'—'}</div></div>
+      <div class="ci"><div class="cb"></div><div class="cl">Control type: ${ctrlLabel(w.control_type)} — Side: ${w.lr_side||'—'}</div></div>
+      ${isDR&&w.control_type_2?`<div class="ci"><div class="cb"></div><div class="cl">Back control: ${ctrlLabel(w.control_type_2)} — Side: ${w.lr_side_2||'—'}</div></div>`:''}
       <div class="ci"><div class="cb"></div><div class="cl">Brackets included (${w.bracket_count||0}×)</div></div>
       <div class="ci"><div class="cb"></div><div class="cl">Cord / wand length correct</div></div>
       <div class="ci"><div class="cb"></div><div class="cl">Mount type: ${w.mount_type==='in'||w.mount_type==='I'?'Inside':'Outside'}</div></div>
@@ -740,7 +757,7 @@ ${windows.map(w=>`
     </div>
   </div>
 </div>
-`).join('')}
+`;}).join('')}
 
 <div class="signoff">
   <div class="sot">Final Job Sign-Off</div>
