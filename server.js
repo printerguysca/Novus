@@ -383,13 +383,14 @@ app.get('/api/quotes', requireAuth, ownerAdminSales, async (req, res) => {
   const { role, id } = req.user;
   let q = supabase.from('quotes_view').select('*');
   if (role === 'sales') q = q.eq('created_by', id);
-  const { data: rows } = await q.order('created_at', { ascending: false });
-  const result = [];
-  for (const row of (rows||[])) {
-    const { data: items } = await supabase.from('quote_items_view').select('*').eq('quote_id', row.id).order('id');
-    result.push({ ...row, items: items||[] });
-  }
-  res.json(result);
+  // Fetch quotes + all items in parallel (2 queries instead of N+1)
+  const [{ data: rows }, { data: allItems }] = await Promise.all([
+    q.order('created_at', { ascending: false }),
+    supabase.from('quote_items_view').select('*').order('id')
+  ]);
+  const itemsByQuote = {};
+  (allItems||[]).forEach(i => { if(!itemsByQuote[i.quote_id]) itemsByQuote[i.quote_id]=[]; itemsByQuote[i.quote_id].push(i); });
+  res.json((rows||[]).map(row => ({ ...row, items: itemsByQuote[row.id]||[] })));
 });
 app.get('/api/quotes/:id', requireAuth, ownerAdminSales, async (req, res) => {
   const { data: q } = await supabase.from('quotes_view').select('*').eq('id', req.params.id).single();
