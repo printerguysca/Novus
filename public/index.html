@@ -445,6 +445,13 @@ function boot(){
   nav('dashboard');
 }
 function nav(page,param){
+  // Warn if leaving the quote builder with unsaved changes
+  if(_qb.dirty && !page.startsWith('quote-edit')){
+    if(!confirm('You have unsaved changes in this quote.\n\nLeave anyway? All unsaved data will be lost.')){return;}
+    _qb.dirty=false;
+  }
+  // Clean up beforeunload guard when leaving quote builder
+  if(!page.startsWith('quote-edit')){window.removeEventListener('beforeunload',_qbBeforeUnload);}
   document.querySelectorAll('.ni[data-p]').forEach(el=>el.classList.toggle('active',el.dataset.p===page.split('-')[0]));
   $('tactions').innerHTML='';
   $('ptitle').textContent=PT[page.split('-')[0]]||page;
@@ -792,7 +799,9 @@ async function uQ(id,s){await patch('/api/quotes/'+id,{status:s});toast('Quote u
 async function cvtQ(id){const r=await post('/api/quotes/'+id+'/convert');toast('Converted to job '+r.job_number);nav('job-detail',r.job_id);}
 
 // ── QUOTE BUILDER (full page) ──
-let _qb={items:[],editing:null};
+let _qb={items:[],editing:null,dirty:false};
+function _qbBeforeUnload(e){if(_qb.dirty){e.preventDefault();e.returnValue='';}}
+function qbSetDirty(){_qb.dirty=true;}
 async function rQuoteBuilder(editId){
   const clients=await get('/api/clients');
   let q=null;
@@ -804,6 +813,8 @@ async function rQuoteBuilder(editId){
     _qb.items=[{location:'',blind_type:'Zebra',fabric_code:'',fabric_code_2:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',control_type_2:'chain',lr_side_2:'L',mount_type:'in',qty:1,unit_price:0,discount_pct:0}];
     _qb.editing=null;
   }
+  _qb.dirty=false;
+  window.addEventListener('beforeunload',_qbBeforeUnload);
   $('ptitle').textContent=editId?'Edit Quote — '+(q?.quote_number||''):'New Quote';
   $('tactions').innerHTML=`<button class="btn bsec bsm" onclick="nav('quotes')">Back to Quotes</button>`;
 
@@ -1042,6 +1053,7 @@ function qbRenderCards(){
   }).join('');
 }
 function qbU(i,key,val){
+  _qb.dirty=true;
   _qb.items[i][key]=val;
   // When type changes, reset fabric_code and re-render for new dropdown options
   if(key==='blind_type'){
@@ -1060,11 +1072,12 @@ function qbU(i,key,val){
   }
 }
 function qbAddRow(){
+  _qb.dirty=true;
   _qb.items.push({location:'',blind_type:'Zebra',fabric_code:'',fabric_code_2:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',control_type_2:'chain',lr_side_2:'L',mount_type:'in',qty:1,unit_price:0,discount_pct:0});
   qbRenderRows();qbCalcTotals();
 }
-function qbDupRow(i){_qb.items.splice(i+1,0,{..._qb.items[i]});qbRenderRows();qbCalcTotals();}
-function qbDelRow(i){if(_qb.items.length<=1){toast('Need at least one item','err');return;}_qb.items.splice(i,1);qbRenderRows();qbCalcTotals();}
+function qbDupRow(i){_qb.dirty=true;_qb.items.splice(i+1,0,{..._qb.items[i]});qbRenderRows();qbCalcTotals();}
+function qbDelRow(i){if(_qb.items.length<=1){toast('Need at least one item','err');return;}_qb.dirty=true;_qb.items.splice(i,1);qbRenderRows();qbCalcTotals();}
 function qbCalcTotals(){
   const msrp=_qb.items.reduce((s,r)=>{const lt=(r.unit_price||0)*(r.qty||1);return s+(lt-lt*((r.discount_pct||0)/100));},0);
   const mk=parseFloat($('qb_markup')?.value)||0;
@@ -1104,6 +1117,8 @@ async function qbSave(){
   try{
     if(_qb.editing){await api('PUT','/api/quotes/'+_qb.editing,payload);toast('Quote updated');}
     else{await post('/api/quotes',payload);toast('Quote created');}
+    _qb.dirty=false;
+    window.removeEventListener('beforeunload',_qbBeforeUnload);
     nav('quotes');
   }catch(e){toast(e.message,'err');}
 }
