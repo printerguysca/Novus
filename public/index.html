@@ -514,8 +514,13 @@ async function cJob(){
   closeModal();toast('Job '+job.job_number+' created');nav('job-detail',job.id);
 }
 async function rJobDetail(id){
-  _cJob=await get('/api/jobs/'+id);
-  _fabs=await get('/api/fabrics');_profs=await get('/api/profiles');
+  const needFabs=!_fabs.length,needProfs=!_profs.length;
+  const reqs=[get('/api/jobs/'+id)];
+  if(needFabs)reqs.push(get('/api/fabrics'));
+  if(needProfs)reqs.push(get('/api/profiles'));
+  const [job,...rest]=await Promise.all(reqs);
+  _cJob=job;
+  let ri=0;if(needFabs)_fabs=rest[ri++];if(needProfs)_profs=rest[ri++];
   $('ptitle').textContent=_cJob.job_number;
   const ce=can('owner','admin','sales','warehouse'),cc=can('owner','admin','warehouse','factory');
   $('tactions').innerHTML=`${ce?`<select class="btn bsec bsm" style="font-weight:600" onchange="updJS(${id},this.value)">${['new','measured','in_production','ready','installed'].map(s=>`<option value="${s}" ${_cJob.status===s?'selected':''}>${{new:'New',measured:'Measured',in_production:'In Production',ready:'Ready',installed:'Installed'}[s]}</option>`).join('')}</select>`:''}${cc?`<button class="btn bsec bsm" onclick="printS(${id},'fabric')">Fabric Sheet</button><button class="btn bsec bsm" onclick="printS(${id},'hardware')">Hardware Sheet</button><button class="btn bsec bsm" onclick="printAssembly(${id})">Assembly Sheet</button>`:''}${ce?`<button class="btn bp bsm" onclick="mAddWin(${id})">Add Window</button>`:''}`;

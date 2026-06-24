@@ -49,8 +49,8 @@ async function calcCuts(w) {
   const cut_bottom_rail = parseFloat((tw+p.br).toFixed(4));
   const cut_bottom_core = p.bc ? parseFloat((tw+p.bc).toFixed(4)) : 0;
   const cut_fabric_width = parseFloat((cut_bottom_rail-0.0625).toFixed(4));
-  let fabric = null;
-  if (w.fabric_id) {
+  let fabric = w._fabricData || null;
+  if (!fabric && w.fabric_id) {
     const { data } = await supabase.from('fabrics').select('*').eq('id', w.fabric_id).single();
     fabric = data;
   }
@@ -200,25 +200,31 @@ app.delete('/api/users/:id', requireAuth, requireRole('owner'), async (req, res)
 
 app.get('/api/dashboard', requireAuth, async (req, res) => {
   const { role, id } = req.user;
-  const { data: allJobs } = await supabase.from('jobs').select('status');
+  const [
+    { data: allJobs },
+    { count: totalClients },
+    { data: recentJobs },
+    { data: lowFabric },
+    { data: myTasks },
+    { data: qr }
+  ] = await Promise.all([
+    supabase.from('jobs').select('status'),
+    supabase.from('clients').select('*', { count: 'exact', head: true }),
+    supabase.from('jobs_list').select('*').order('created_at', { ascending: false }).limit(6),
+    supabase.from('fabrics_view').select('*').eq('active', true).lt('remaining', 20).order('remaining').limit(5),
+    supabase.from('tasks_detail').select('*').eq('assigned_to', id).neq('status', 'done').order('due_date').limit(5),
+    role === 'owner' ? supabase.from('quotes').select('total,status').in('status', ['accepted','converted']) : Promise.resolve({ data: null })
+  ]);
   const counts = {}; (allJobs||[]).forEach(j => { counts[j.status] = (counts[j.status]||0)+1; });
   const jobCounts = Object.entries(counts).map(([status,count]) => ({ status, count }));
-  const totalJobs = (allJobs||[]).length;
-  const { count: totalClients } = await supabase.from('clients').select('*', { count: 'exact', head: true });
-  const { data: recentJobs } = await supabase.from('jobs_list').select('*').order('created_at', { ascending: false }).limit(6);
-  const { data: lowFabric } = await supabase.from('fabrics_view').select('*').eq('active', true).lt('remaining', 20).order('remaining').limit(5);
-  const { data: myTasks } = await supabase.from('tasks_detail').select('*').eq('assigned_to', id).neq('status', 'done').order('due_date').limit(5);
-  let revenue = null;
-  if (role === 'owner') {
-    const { data: qr } = await supabase.from('quotes').select('total,status').in('status', ['accepted','converted']);
-    revenue = { total: (qr||[]).reduce((s,q) => s + (q.total||0), 0), count: (qr||[]).length };
-  }
-  res.json({ jobCounts, totalJobs, totalClients, recentJobs: recentJobs||[], lowFabric: lowFabric||[], myTasks: myTasks||[], revenue });
+  const revenue = qr ? { total: qr.reduce((s,q) => s + (q.total||0), 0), count: qr.length } : null;
+  res.json({ jobCounts, totalJobs: (allJobs||[]).length, totalClients, recentJobs: recentJobs||[], lowFabric: lowFabric||[], myTasks: myTasks||[], revenue });
 });
 
 // ─── PROFILES ────────────────────────────────────────────────────────────────
 
 app.get('/api/profiles', requireAuth, async (req, res) => {
+  res.set('Cache-Control', 'private, max-age=300');
   const { data } = await supabase.from('profiles').select('*').order('code');
   res.json(data);
 });
@@ -258,11 +264,12 @@ app.get('/api/jobs', requireAuth, async (req, res) => {
   res.json(data || []);
 });
 app.get('/api/jobs/:id', requireAuth, async (req, res) => {
-  const { data: job } = await supabase.from('job_detail').select('*').eq('id', req.params.id).single();
+  const [{ data: job }, { data: windows }] = await Promise.all([
+    supabase.from('job_detail').select('*').eq('id', req.params.id).single(),
+    supabase.from('windows_detail').select('*').eq('job_id', req.params.id).order('window_no')
+  ]);
   if (!job) return res.status(404).json({ error: 'Not found' });
-  // Map client_phone to phone for frontend compatibility
   job.phone = job.client_phone; delete job.client_phone;
-  const { data: windows } = await supabase.from('windows_detail').select('*').eq('job_id', req.params.id).order('window_no');
   res.json({ ...job, windows: windows || [] });
 });
 app.post('/api/jobs', requireAuth, requireRole('owner','admin','sales'), async (req, res) => {
@@ -489,11 +496,18 @@ app.post('/api/quotes/:id/convert', requireAuth, ownerAdmin, async (req, res) =>
     date_in: new Date().toISOString().split('T')[0], notes: `Converted from ${q.quote_number}`
   }).select().single();
   if (jobErr) return res.status(500).json({ error: jobErr.message });
+  // Pre-load all referenced fabrics in one query to avoid N round trips in calcCuts
+  const fabricIds = [...new Set((qItems||[]).map(i => i.fabric_id).filter(Boolean))];
+  let fabricMap = {};
+  if (fabricIds.length) {
+    const { data: fabrics } = await supabase.from('fabrics').select('*').in('id', fabricIds);
+    (fabrics||[]).forEach(f => { fabricMap[f.id] = f; });
+  }
   // Copy each quote item → job windows (expand by qty)
   let windowNo = 1;
   for (const item of (qItems || [])) {
     const count = Math.max(1, parseInt(item.qty) || 1);
-    const cuts = await calcCuts(item);
+    const cuts = await calcCuts({ ...item, _fabricData: item.fabric_id ? fabricMap[item.fabric_id] : null });
     for (let n = 0; n < count; n++) {
       await supabase.from('job_windows').insert({
         job_id: job.id,
@@ -812,6 +826,7 @@ app.delete('/api/calendar/:id', requireAuth, ownerAdmin, async (req, res) => {
 // ─── FABRICS ──────────────────────────────────────────────────────────────────
 
 app.get('/api/fabrics', requireAuth, async (req, res) => {
+  res.set('Cache-Control', 'private, max-age=120');
   const { data } = await supabase.from('fabrics_view').select('*').eq('active', true).order('catalogue_no');
   res.json(data || []);
 });
