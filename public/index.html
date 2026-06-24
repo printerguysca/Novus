@@ -811,13 +811,14 @@ function _qbBeforeUnload(e){if(_qb.dirty){e.preventDefault();e.returnValue='';}}
 function qbSetDirty(){_qb.dirty=true;}
 async function rQuoteBuilder(editId){
   const clients=await get('/api/clients');
+  if(!_profs.length)_profs=await get('/api/profiles');
   let q=null;
   if(editId){
     q=await get('/api/quotes/'+editId);
-    _qb.items=(q.items||[]).map(it=>({location:it.location||'',blind_type:it.blind_type||'Zebra',fabric_code:it.fabric_code||it.fabric_id||'',fabric_code_2:it.fabric_code_2||'',hc_custom:it.hc_custom||'',cassette_colour:it.cassette_colour||'',width_in:it.width_in||0,width_frac:it.width_frac||0,length_in:it.length_in||0,length_frac:it.length_frac||0,control_type:it.control_type||'chain',lr_side:it.lr_side||'R',control_type_2:it.control_type_2||'chain',lr_side_2:it.lr_side_2||'L',mount_type:it.mount_type||'',qty:it.qty||1,unit_price:it.unit_price||0,discount_pct:it.discount_pct||0}));
+    _qb.items=(q.items||[]).map(it=>({location:it.location||'',blind_type:it.blind_type||'Zebra',profile_code:it.profile_code||'',fabric_code:it.fabric_code||it.fabric_id||'',fabric_code_2:it.fabric_code_2||'',hc_custom:it.hc_custom||'',cassette_colour:it.cassette_colour||'',width_in:it.width_in||0,width_frac:it.width_frac||0,length_in:it.length_in||0,length_frac:it.length_frac||0,control_type:it.control_type||'chain',lr_side:it.lr_side||'R',control_type_2:it.control_type_2||'chain',lr_side_2:it.lr_side_2||'L',mount_type:it.mount_type||'in',qty:it.qty||1,unit_price:it.unit_price||0,discount_pct:it.discount_pct||0}));
     _qb.editing=editId;
   }else{
-    _qb.items=[{location:'',blind_type:'Zebra',fabric_code:'',fabric_code_2:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',control_type_2:'chain',lr_side_2:'L',mount_type:'in',qty:1,unit_price:0,discount_pct:0}];
+    _qb.items=[{location:'',blind_type:'Zebra',profile_code:'',fabric_code:'',fabric_code_2:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',control_type_2:'chain',lr_side_2:'L',mount_type:'in',qty:1,unit_price:0,discount_pct:0}];
     _qb.editing=null;
   }
   _qb.dirty=false;
@@ -852,7 +853,7 @@ async function rQuoteBuilder(editId){
     <div class="qb-table-wrap" id="qb_table_wrap" style="overflow-x:auto;font-size:12px;padding:0 0 8px 0">
       <table style="min-width:860px">
       <thead><tr>
-        <th style="width:22px">#</th><th style="min-width:110px">Location *</th><th style="min-width:100px">Type</th><th style="min-width:160px">Fabric *</th><th style="min-width:70px">Case</th>
+        <th style="width:22px">#</th><th style="min-width:110px">Location *</th><th style="min-width:100px">Type</th><th style="min-width:160px">Fabric *</th><th style="min-width:80px">Profile *</th><th style="min-width:70px">Case</th>
         <th style="min-width:100px">Width *</th><th style="min-width:100px">Height *</th>
         <th style="min-width:90px">Control</th><th style="width:50px">LR</th><th style="min-width:72px">Mount</th>
         <th style="width:44px">Qty</th><th style="min-width:72px">Price</th><th style="min-width:60px">Disc%</th><th style="min-width:76px">Total</th><th style="width:70px"></th>
@@ -945,6 +946,7 @@ function qbRenderRows(){
       <td><input value="${r.location||''}" onchange="qbU(${i},'location',this.value)" list="loc-list" placeholder="Room..." style="width:110px;${si}"/></td>
       <td><select onchange="qbU(${i},'blind_type',this.value)" style="${si}">${BLIND_TYPES.map(t=>`<option ${r.blind_type===t?'selected':''}>${t}</option>`).join('')}</select></td>
       <td>${qbFabricCell(i,r)}</td>
+      <td><select onchange="qbU(${i},'profile_code',this.value)" style="${si}"><option value="">—</option>${_profs.map(p=>`<option value="${p.code}" ${r.profile_code===p.code?'selected':''}>${p.code}</option>`).join('')}</select></td>
       <td><select onchange="qbU(${i},'cassette_colour',this.value)" style="${si}">${['White','Black','Grey','Silver','Mill'].map(c=>`<option ${r.cassette_colour===c?'selected':''}>${c}</option>`).join('')}</select></td>
       <td style="white-space:nowrap">
         <input type="number" value="${r.width_in}" onchange="qbU(${i},'width_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:38px;text-align:center;${si}"/>
@@ -1037,6 +1039,10 @@ function qbRenderCards(){
             <select style="width:62px" onchange="qbU(${i},'length_frac',parseFloat(this.value)||0);qbCalcTotals()">${fo.replace(`value="${r.length_frac}"`,`value="${r.length_frac}" selected`)}</select>
           </div>
         </div>
+        <div class="qbc-field"><label>Profile *</label><select onchange="qbU(${i},'profile_code',this.value)">
+          <option value="">— Select —</option>
+          ${_profs.map(p=>`<option value="${p.code}" ${r.profile_code===p.code?'selected':''}>${p.code} — ${p.description}</option>`).join('')}
+        </select></div>
         <div class="qbc-field"><label>Cassette</label><select onchange="qbU(${i},'cassette_colour',this.value)">
           ${['White','Black','Grey','Silver','Mill'].map(c=>`<option ${r.cassette_colour===c?'selected':''}>${c}</option>`).join('')}
         </select></div>
@@ -1080,7 +1086,7 @@ function qbU(i,key,val){
 }
 function qbAddRow(){
   _qb.dirty=true;
-  _qb.items.push({location:'',blind_type:'Zebra',fabric_code:'',fabric_code_2:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',control_type_2:'chain',lr_side_2:'L',mount_type:'in',qty:1,unit_price:0,discount_pct:0});
+  _qb.items.push({location:'',blind_type:'Zebra',profile_code:'',fabric_code:'',fabric_code_2:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',control_type_2:'chain',lr_side_2:'L',mount_type:'in',qty:1,unit_price:0,discount_pct:0});
   qbRenderRows();qbCalcTotals();
 }
 function qbDupRow(i){_qb.dirty=true;_qb.items.splice(i+1,0,{..._qb.items[i]});qbRenderRows();qbCalcTotals();}

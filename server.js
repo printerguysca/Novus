@@ -55,7 +55,8 @@ async function calcCuts(w) {
     fabric = data;
   }
   const cassette = (w.cassette_colour||'').toLowerCase();
-  const fabricCode = fabric ? fabric.catalogue_no : '';
+  // Use fabric_code text field as fallback when fabric_id not set (e.g. converted from quote)
+  const fabricCode = fabric ? fabric.catalogue_no : (w.fabric_code||'');
   const cut_fabric_drop = cassette === 'mill'
     ? parseFloat((tl + (fabric?.slat_size||3)/2 - 0.5).toFixed(4))
     : parseFloat((tl + 6).toFixed(4));
@@ -490,6 +491,7 @@ app.post('/api/quotes/:id/convert', requireAuth, ownerAdmin, async (req, res) =>
   let windowNo = 1;
   for (const item of (qItems || [])) {
     const count = Math.max(1, parseInt(item.qty) || 1);
+    const cuts = await calcCuts(item);
     for (let n = 0; n < count; n++) {
       await supabase.from('job_windows').insert({
         job_id: job.id,
@@ -510,7 +512,12 @@ app.post('/api/quotes/:id/convert', requireAuth, ownerAdmin, async (req, res) =>
         control_type_2: item.control_type_2 || null,
         lr_side_2: item.lr_side_2 || null,
         mount_type: item.mount_type || 'in',
-        notes: item.blind_type || null
+        notes: item.blind_type || null,
+        cut_cassette: cuts?.cut_cassette||null, cut_roller: cuts?.cut_roller||null,
+        cut_bottom_rail: cuts?.cut_bottom_rail||null, cut_bottom_core: cuts?.cut_bottom_core||null,
+        cut_fabric_width: cuts?.cut_fabric_width||null, cut_fabric_drop: cuts?.cut_fabric_drop||null,
+        fabric_meters: cuts?.fabric_meters||null, cord_wand_size: cuts?.cord_wand_size||null,
+        bracket_count: cuts?.bracket_count||null
       });
     }
   }
