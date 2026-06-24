@@ -571,10 +571,12 @@ function lc(){
   if(!w||!h||!pr){$('cprev').innerHTML='<span style="color:var(--text3);font-size:13px">Fill in width, length and profile to calculate cuts.</span>';return;}
   const p=PDATA[pr];if(!p)return;
   const tw=w+wf,th=h+hf;
-  const cc=(tw+p.c).toFixed(3),cr=(tw+p.r).toFixed(3),cbr=(tw+p.br).toFixed(3),cbc=p.bc?(tw+p.bc).toFixed(3):'N/A';
+  const px=fc?fc[0].toUpperCase():'';
+  const cc=(tw+p.c).toFixed(3),cr=(tw+p.r).toFixed(3),cbr=(tw+p.br).toFixed(3);
+  // Bottom core only for Zebra/Sheer fabrics
+  const cbc=(p.bc&&(px==='Z'||px==='S'))?(tw+p.bc).toFixed(3):'N/A';
   const fw=(parseFloat(cbr)-0.0625).toFixed(3);
-  const fd2=(bt==='zebra'?(th+slat/2-0.625):(th+6)).toFixed(3);
-  const px=fc?fc[0].toUpperCase():'',fm=((px==='Z'||px==='S')?parseFloat(fd2)*.0254*2:parseFloat(fd2)*.0254).toFixed(3);
+  const fd2=(bt==='zebra'?(th+slat/2-0.625):(th+6)).toFixed(3);,fm=((px==='Z'||px==='S')?parseFloat(fd2)*.0254*2:parseFloat(fd2)*.0254).toFixed(3);
   let cord='L';if(ct.startsWith('m'))cord='None';else if(th<30)cord='S';else if(th<45)cord='M';
   const brk=tw>59?3:2;
   $('cprev').innerHTML=`
@@ -602,7 +604,9 @@ async function printS(id,type){
   w.document.write(`<!DOCTYPE html><html><head><title>${title} — ${job.job_number}</title><style>*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,sans-serif;}body{padding:26px;background:#fff;font-size:12px;color:#000;}.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid ${col};}.ht{font-size:20px;font-weight:800;color:${col};}.hs{font-size:11px;color:#555;margin-top:2px;}.hc{display:inline-block;background:${col};color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;margin-top:6px;}.hcl{text-align:right;font-size:11px;line-height:1.7;}table{width:100%;border-collapse:collapse;margin-top:12px;}th{background:${col};color:#fff;padding:7px 9px;font-size:10px;text-align:left;text-transform:uppercase;letter-spacing:.4px;}td{padding:7px 9px;border-bottom:1px solid #e5e7eb;font-size:11px;}tr:nth-child(even)td{background:#f9fafb;}.cut{font-weight:700;font-family:monospace;font-size:12px;color:${col};background:${bg2};padding:1px 5px;border-radius:3px;}.ft{margin-top:14px;padding-top:10px;border-top:1px solid #ddd;font-size:10px;color:#666;display:flex;justify-content:space-between;}@media print{body{padding:14px}}</style></head><body>
   <div class="hdr"><div><div class="ht">${title}</div><div class="hs">${sub}</div><div class="hc">${job.job_number}</div></div><div class="hcl"><strong style="font-size:13px">${job.client_name||'—'}</strong><br>${job.client_address||''}<br>In: ${fd(job.date_in)} &nbsp; Due: ${fd(job.date_due)}<br>Rep: ${job.rep||'—'}</div></div>
   <table><thead><tr>${iF?`<th>#</th><th>Location</th><th>Code</th><th>Fabric Name</th><th>Slat"</th><th>CUT WIDTH</th><th>CUT DROP</th><th>Metres</th><th>Cassette</th>`:`<th>#</th><th>Location</th><th>Profile</th><th>Type</th><th>CASSETTE CUT</th><th>CORE ROLLER</th><th>BOTTOM RAIL</th><th>BOTTOM CORE</th><th>Mount</th><th>Brackets</th><th>Cord</th><th>Control</th>`}</tr></thead>
-  <tbody>${windows.map(w=>{const isDR=(w.blind_type||'').toLowerCase()==='double roller';if(iF){const mainRow=`<tr><td>${w.window_no}</td><td>${w.location||'—'}</td><td><strong>${w.catalogue_no||'—'}</strong></td><td>${w.fabric_alias||'—'}</td><td>${w.slat_size||'—'}"</td><td class="cut">${toFrac(w.cut_fabric_width)}</td><td class="cut">${toFrac(w.cut_fabric_drop)}</td><td class="cut">${fn(w.fabric_meters,3)} m</td><td>${w.cassette_colour||'—'}</td></tr>`;const backRow=isDR&&w.fabric_code_2?(()=>{const bf=_fabs.find(f=>f.catalogue_no===w.fabric_code_2);const bpx=(w.fabric_code_2[0]||'').toUpperCase();const bIsZ=bpx==='Z'||bpx==='S';const tl2=(parseFloat(w.length_in)||0)+(parseFloat(w.length_frac)||0);const bDrop=bIsZ?tl2+(bf?.slat_size||3)/2-0.625:tl2+6;const bM=parseFloat((bIsZ?bDrop*0.0254*2:bDrop*0.0254).toFixed(3));return`<tr style="background:#eff6ff"><td>${w.window_no}</td><td>${w.location||'—'} <em style="font-size:9px;color:#6b7280">(Back)</em></td><td><strong>${w.fabric_code_2}</strong></td><td>${bf?.alias||'Back Fabric'}</td><td>${bf?.slat_size||'—'}"</td><td class="cut">${toFrac(w.cut_fabric_width)}</td><td class="cut">${toFrac(bDrop)}</td><td class="cut">${fn(bM,3)} m</td><td>—</td></tr>`;})():'';return mainRow+backRow;}const hwRow=(label,isBack)=>`<tr${isBack?' style="background:#eff6ff"':''}><td>${w.window_no}</td><td>${w.location||'—'}${label?` <em style="font-size:9px;color:#6b7280">(${label})</em>`:''}</td><td><strong>${w.profile_code||'—'}</strong></td><td>${isBack?'BACK ROLLER':(isDR?'FRONT ROLLER':(w.blind_type||'').toUpperCase())}</td><td class="cut">${isBack?'—':(w.cut_cassette!=null?toFrac(w.cut_cassette):'N/A')}</td><td class="cut">${toFrac(w.cut_roller)}</td><td class="cut">${toFrac(w.cut_bottom_rail)}</td><td class="cut">${w.cut_bottom_core?toFrac(w.cut_bottom_core):'N/A'}</td><td>${w.mount_type==='in'||w.mount_type==='I'?'Inside':'Outside'}</td><td>${isBack?'—':w.bracket_count||0+'×'}</td><td>${isBack?'—':w.cord_wand_size||'—'}</td><td>${isBack?(w.control_type_2||'—')+' '+(w.lr_side_2||''):(w.control_type||'—')+' '+(w.lr_side||'')}</td></tr>`;
+  <tbody>${windows.map(w=>{const isDR=(w.blind_type||'').toLowerCase()==='double roller';if(iF){const mainRow=`<tr><td>${w.window_no}</td><td>${w.location||'—'}</td><td><strong>${w.catalogue_no||'—'}</strong></td><td>${w.fabric_alias||'—'}</td><td>${w.slat_size||'—'}"</td><td class="cut">${toFrac(w.cut_fabric_width)}</td><td class="cut">${toFrac(w.cut_fabric_drop)}</td><td class="cut">${fn(w.fabric_meters,3)} m</td><td>${w.cassette_colour||'—'}</td></tr>`;const backRow=isDR&&w.fabric_code_2?(()=>{const bf=_fabs.find(f=>f.catalogue_no===w.fabric_code_2);const bpx=(w.fabric_code_2[0]||'').toUpperCase();const bIsZ=bpx==='Z'||bpx==='S';const tl2=(parseFloat(w.length_in)||0)+(parseFloat(w.length_frac)||0);const bDrop=bIsZ?tl2+(bf?.slat_size||3)/2-0.625:tl2+6;const bM=parseFloat((bIsZ?bDrop*0.0254*2:bDrop*0.0254).toFixed(3));return`<tr style="background:#eff6ff"><td>${w.window_no}</td><td>${w.location||'—'} <em style="font-size:9px;color:#6b7280">(Back)</em></td><td><strong>${w.fabric_code_2}</strong></td><td>${bf?.alias||'Back Fabric'}</td><td>${bf?.slat_size||'—'}"</td><td class="cut">${toFrac(w.cut_fabric_width)}</td><td class="cut">${toFrac(bDrop)}</td><td class="cut">${fn(bM,3)} m</td><td>—</td></tr>`;})():'';return mainRow+backRow;}const bpxHW=((w.fabric_code_2||'')[0]||'').toUpperCase();
+const backIsZebra=bpxHW==='Z'||bpxHW==='S';
+const hwRow=(label,isBack)=>{const bc=isBack?(backIsZebra?w.cut_bottom_core:0):w.cut_bottom_core;return`<tr${isBack?' style="background:#eff6ff"':''}><td>${w.window_no}</td><td>${w.location||'—'}${label?` <em style="font-size:9px;color:#6b7280">(${label})</em>`:''}</td><td><strong>${w.profile_code||'—'}</strong></td><td>${isBack?'BACK ROLLER':(isDR?'FRONT ROLLER':(w.blind_type||'').toUpperCase())}</td><td class="cut">${isBack?'—':(w.cut_cassette!=null?toFrac(w.cut_cassette):'N/A')}</td><td class="cut">${toFrac(w.cut_roller)}</td><td class="cut">${toFrac(w.cut_bottom_rail)}</td><td class="cut">${bc?toFrac(bc):'N/A'}</td><td>${w.mount_type==='in'||w.mount_type==='I'?'Inside':'Outside'}</td><td>${isBack?'—':(w.bracket_count||0)+'×'}</td><td>${isBack?'—':w.cord_wand_size||'—'}</td><td>${isBack?((w.control_type_2||'—')+' '+(w.lr_side_2||'')):((w.control_type||'—')+' '+(w.lr_side||''))}</td></tr>`;};
 return isDR?(hwRow('Front',false)+hwRow('Back',true)):hwRow('',false);}).join('')}</tbody></table>
   <div class="ft"><span>Windows: ${windows.length}</span><span>${iF?`Total fabric: ${windows.reduce((s,w)=>s+(parseFloat(w.fabric_meters)||0),0).toFixed(3)} m`:`${job.job_number} — ${job.client_name||''}`}</span><span>Printed: ${new Date().toLocaleString()}</span></div>
   <script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close();
@@ -723,7 +727,9 @@ ${windows.map(w=>{
       <div class="di"><div class="dl">Cassette Cut</div><div class="dv cut">${w.cut_cassette!=null?toFrac(w.cut_cassette):'N/A'}</div></div>
       <div class="di"><div class="dl">Core Roller</div><div class="dv cut">${toFrac(w.cut_roller)}</div></div>
       <div class="di"><div class="dl">Bottom Rail</div><div class="dv cut">${toFrac(w.cut_bottom_rail)}</div></div>
-      <div class="di"><div class="dl">Bottom Core</div><div class="dv cut">${w.cut_bottom_core?toFrac(w.cut_bottom_core):'N/A'}</div></div>
+      <div class="di"><div class="dl">${isDR?'Front Bottom Core':'Bottom Core'}</div><div class="dv cut">${w.cut_bottom_core?toFrac(w.cut_bottom_core):'N/A'}</div></div>
+      ${isDR?`<div class="di"><div class="dl" style="color:#1d4ed8">Back Bottom Core</div><div class="dv cut" style="color:#6b7280">${bIsZ&&w.cut_bottom_core?toFrac(w.cut_bottom_core):'N/A'}</div></div>`:''}
+
     </div>
     <div class="dg">
       <div class="di"><div class="dl">${isDR?'Front Cut Width':'Fabric Cut Width'}</div><div class="dv cut">${toFrac(w.cut_fabric_width)}</div></div>
@@ -1928,11 +1934,13 @@ function csvCalcRow(i){
   const tw=(r.width_in||0)+(r.width_frac||0);
   const tl=(r.length_in||0)+(r.length_frac||0);
   const cc=(tw+pr.c).toFixed(3),cr=(tw+pr.r).toFixed(3);
-  const cbr=(tw+pr.br).toFixed(3),cbc=pr.bc?(tw+pr.bc).toFixed(3):'N/A';
+  const cbr=(tw+pr.br).toFixed(3);
   const fw=(parseFloat(cbr)-0.0625).toFixed(3);
   const fab=r.fabric_id?_fabs.find(f=>f.id==r.fabric_id):matchFabric(r.fabric_code);
   const fc=fab?fab.catalogue_no:'';
   const px=fc?fc[0].toUpperCase():'';
+  // Bottom core only for Zebra/Sheer fabrics
+  const cbc=(pr.bc&&(px==='Z'||px==='S'))?(tw+pr.bc).toFixed(3):'N/A';
   const bt=(r.blind_type||'').toLowerCase();
   // For double roller, infer each fabric's type from its own prefix
   const effType=bt==='double roller'?((px==='Z'||px==='S')?'zebra':'roller'):bt;

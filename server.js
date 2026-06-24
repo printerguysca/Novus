@@ -47,7 +47,7 @@ async function calcCuts(w) {
   const cut_cassette = parseFloat((tw+p.c).toFixed(4));
   const cut_roller = parseFloat((tw+p.r).toFixed(4));
   const cut_bottom_rail = parseFloat((tw+p.br).toFixed(4));
-  const cut_bottom_core = p.bc ? parseFloat((tw+p.bc).toFixed(4)) : 0;
+  // Bottom core only exists for Zebra/Sheer fabrics — determined after fabric lookup below
   const cut_fabric_width = parseFloat((cut_bottom_rail-0.0625).toFixed(4));
   let fabric = w._fabricData || null;
   if (!fabric && w.fabric_id) {
@@ -58,6 +58,8 @@ async function calcCuts(w) {
   // Use fabric_code text field as fallback when fabric_id not set (e.g. converted from quote)
   const fabricCode = fabric ? fabric.catalogue_no : (w.fabric_code||'');
   const prefix = fabricCode ? fabricCode[0].toUpperCase() : '';
+  // Bottom core only for Zebra/Sheer fabrics (Z/S prefix) — Roller blinds never have one
+  const cut_bottom_core = (p.bc && (prefix==='Z'||prefix==='S')) ? parseFloat((tw+p.bc).toFixed(4)) : 0;
   const blindTypeRaw = (w.blind_type||'').toLowerCase();
   // For Double Roller, infer each fabric's type from its own code prefix (front fabric here)
   // For single blinds, use explicit blind_type or fall back to prefix inference
