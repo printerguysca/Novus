@@ -188,8 +188,13 @@ tbody tr:hover td{background:var(--accent-bg);}
   .fg input,.fg select,.fg textarea{padding:10px !important;}
   .fss{font-size:15px;}
 }
-.qb-cards{display:block;}
-.qb-table-wrap{display:none;}
+.qb-cards{display:none;}
+/* compact table */
+.qb-table-wrap table{border-collapse:collapse;width:100%;}
+.qb-table-wrap th,.qb-table-wrap td{padding:4px 5px;white-space:nowrap;}
+.qb-table-wrap input,.qb-table-wrap select{box-sizing:border-box;}
+.qb-view-tog{display:flex;gap:4px;}
+.qb-view-tog .btn{padding:3px 10px;font-size:11px;}
 /* Compact card layout */
 .qb-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
 .qbc-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
@@ -750,6 +755,30 @@ async function svClient(id){
   if(id){await patch('/api/clients/'+id,d);}else{await post('/api/clients',d);}
   closeModal();toast(id?'Client updated':'Client added');rClients();
 }
+// Inline new customer from quote builder
+function qbNewClient(){
+  openModal(`<div class="md mmd"><div class="mh"><h3>New Customer</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fr2"><div class="fg"><label>Name *</label><input id="qbnc_n" placeholder="e.g. John Smith"/></div><div class="fg"><label>Phone</label><input id="qbnc_p" placeholder="204-xxx-xxxx"/></div></div>
+    <div class="fg"><label>Address</label><input id="qbnc_a" placeholder="123 Main St, Winnipeg"/></div>
+    <div class="fr2"><div class="fg"><label>Contact Person</label><input id="qbnc_c" placeholder="Primary contact name"/></div><div class="fg"><label>Email</label><input id="qbnc_e" placeholder="email@example.com"/></div></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="qbSaveNewClient()">Add Customer</button></div></div>`);
+  setTimeout(()=>{const el=$('qbnc_n');if(el)el.focus();},100);
+}
+async function qbSaveNewClient(){
+  const name=($('qbnc_n')?.value||'').trim();
+  if(!name){toast('Name required','err');return;}
+  const d={name,phone:$('qbnc_p')?.value||'',address:$('qbnc_a')?.value||'',contact:$('qbnc_c')?.value||'',email:$('qbnc_e')?.value||''};
+  const c=await post('/api/clients',d);
+  if(!c?.id){toast('Failed to create customer','err');return;}
+  closeModal();
+  const sel=$('qb_client');
+  if(sel){
+    const opt=document.createElement('option');
+    opt.value=c.id;opt.textContent=c.name+(c.address?' — '+c.address:'');
+    sel.appendChild(opt);sel.value=c.id;
+  }
+  toast('Customer added — selected in quote');
+}
 // ── QUOTES ──
 async function rQuotes(){
   const quotes=await get('/api/quotes');
@@ -783,21 +812,32 @@ async function rQuoteBuilder(editId){
   $('content').innerHTML=`
   <div class="card"><div style="padding:16px 18px">
     <div class="fss" style="margin-top:0">Basic Information</div>
-    <div class="fg"><label>Customer *</label><select id="qb_client"><option value="">Select customer...</option>${co}</select></div>
+    <div class="fg"><label>Customer *</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="qb_client" style="flex:1"><option value="">Select customer...</option>${co}</select>
+        <button class="btn bsec bxs" onclick="qbNewClient()" style="white-space:nowrap;flex-shrink:0;padding:8px 12px">+ New Customer</button>
+      </div>
+    </div>
     <div class="fr2">
       <div class="fg"><label>Notes to Customer</label><textarea id="qb_cnotes" rows="3" placeholder="Thank you for your business!">${q?.customer_notes||'Thank you for your business!'}</textarea></div>
       <div class="fg"><label>Terms &amp; Conditions</label><textarea id="qb_terms" rows="3" placeholder="Payment due within 30 days.">${q?.terms||'Payment due within 30 days.'}</textarea></div>
     </div>
   </div></div>
 
-  <div class="card"><div class="ch"><h2>Line Items <span class="badge bbl" id="qb_count">${_qb.items.length}</span></h2></div>
-    <div class="qb-table-wrap" style="overflow-x:auto;font-size:12px;padding:0 0 8px 0">
-      <table style="min-width:1300px">
+  <div class="card"><div class="ch" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <h2 style="margin:0">Line Items <span class="badge bbl" id="qb_count">${_qb.items.length}</span></h2>
+    <div class="qb-view-tog">
+      <button class="btn bp" id="qb_vtbl" onclick="qbSetView('table')" title="Table view">⊞ Table</button>
+      <button class="btn bg" id="qb_vcrd" onclick="qbSetView('cards')" title="Card view">☰ Cards</button>
+    </div>
+  </div>
+    <div class="qb-table-wrap" id="qb_table_wrap" style="overflow-x:auto;font-size:12px;padding:0 0 8px 0">
+      <table style="min-width:860px">
       <thead><tr>
-        <th style="width:30px">#</th><th>Location *</th><th>Type</th><th style="min-width:180px">Fabric Code *</th><th>Case</th>
-        <th>Width *</th><th>Height *</th>
-        <th>Control</th><th>LR</th><th>Mount</th>
-        <th>Qty *</th><th>Price *</th><th>Discount %</th><th>Line Total</th><th style="width:60px"></th>
+        <th style="width:22px">#</th><th style="min-width:110px">Location *</th><th style="min-width:100px">Type</th><th style="min-width:160px">Fabric *</th><th style="min-width:70px">Case</th>
+        <th style="min-width:100px">Width *</th><th style="min-width:100px">Height *</th>
+        <th style="min-width:90px">Control</th><th style="width:50px">LR</th><th style="min-width:72px">Mount</th>
+        <th style="width:44px">Qty</th><th style="min-width:72px">Price</th><th style="min-width:60px">Disc%</th><th style="min-width:76px">Total</th><th style="width:70px"></th>
       </tr></thead>
       <tbody id="qb_tbody"></tbody>
       </table>
@@ -843,20 +883,29 @@ async function rQuoteBuilder(editId){
   qbCalcTotals();
 }
 
+function qbSetView(v){
+  const tw=$('qb_table_wrap'),cd=$('qb_cards');
+  if(!tw||!cd)return;
+  tw.style.display=v==='table'?'':'none';
+  cd.style.display=v==='cards'?'block':'none';
+  const tb=$('qb_vtbl'),cb=$('qb_vcrd');
+  if(tb){tb.className='btn'+(v==='table'?' bp':' bg');}
+  if(cb){cb.className='btn'+(v==='cards'?' bp':' bg');}
+}
 function qbFabricCell(i,r){
+  const s='padding:3px 4px;border:1px solid var(--border);border-radius:4px;font-size:11px;background:var(--card);color:var(--text)';
   if(r.blind_type==='Honeycomb'){
-    return`<input value="${r.hc_custom||''}" onchange="qbU(${i},'hc_custom',this.value)" maxlength="10" placeholder="Custom code" style="width:100px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"/>`;
+    return`<input value="${r.hc_custom||''}" onchange="qbU(${i},'hc_custom',this.value)" maxlength="10" placeholder="Custom code" style="width:90px;${s}"/>`;
   }
   if(r.blind_type==='Double Roller'){
-    const s='padding:4px;border:1px solid var(--border);border-radius:4px;font-size:11px;width:100%';
-    return`<div style="display:flex;flex-direction:column;gap:3px;min-width:170px">
-      <div style="font-size:9px;color:var(--text3);font-weight:700;letter-spacing:.5px">FRONT</div>
-      <select onchange="qbU(${i},'fabric_code',this.value)" style="${s}">${fabOptsDoubleRoller(r.fabric_code)}</select>
-      <div style="font-size:9px;color:var(--text3);font-weight:700;letter-spacing:.5px">BACK</div>
-      <select onchange="qbU(${i},'fabric_code_2',this.value)" style="${s}">${fabOptsDoubleRoller(r.fabric_code_2||'')}</select>
+    return`<div style="display:flex;flex-direction:column;gap:2px;min-width:150px">
+      <span style="font-size:9px;color:var(--text3);font-weight:700">F</span>
+      <select onchange="qbU(${i},'fabric_code',this.value)" style="${s};width:100%">${fabOptsDoubleRoller(r.fabric_code)}</select>
+      <span style="font-size:9px;color:var(--text3);font-weight:700">B</span>
+      <select onchange="qbU(${i},'fabric_code_2',this.value)" style="${s};width:100%">${fabOptsDoubleRoller(r.fabric_code_2||'')}</select>
     </div>`;
   }
-  return`<select onchange="qbU(${i},'fabric_code',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;max-width:200px">${fabOptsByCat(r.blind_type,r.fabric_code)}</select>`;
+  return`<select onchange="qbU(${i},'fabric_code',this.value)" style="${s};max-width:160px">${fabOptsByCat(r.blind_type,r.fabric_code)}</select>`;
 }
 function qbRenderRows(){
   const fo=FRACS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
@@ -864,59 +913,40 @@ function qbRenderRows(){
     const lt=(r.unit_price||0)*(r.qty||1);
     const ld=lt*((r.discount_pct||0)/100);
     const lineTotal=lt-ld;
+    const si='padding:3px 4px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--card);color:var(--text)';
+    const ctrlSel=(key,val)=>`<select onchange="qbU(${i},'${key}',this.value)" style="${si}">${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Mtr.Tub']].map(([v,l])=>`<option value="${v}" ${val===v?'selected':''}>${l}</option>`).join('')}</select>`;
+    const lrSel=(key,val)=>`<select onchange="qbU(${i},'${key}',this.value)" style="${si};width:44px"><option value="R" ${val==='R'?'selected':''}>R</option><option value="L" ${val==='L'?'selected':''}>L</option></select>`;
+    const ctrlCell=r.blind_type==='Double Roller'
+      ?`<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:9px;color:var(--text3);font-weight:700">F</span>${ctrlSel('control_type',r.control_type)}<span style="font-size:9px;color:var(--text3);font-weight:700">B</span>${ctrlSel('control_type_2',r.control_type_2)}</div>`
+      :ctrlSel('control_type',r.control_type);
+    const lrCell=r.blind_type==='Double Roller'
+      ?`<div style="display:flex;flex-direction:column;gap:2px">${lrSel('lr_side',r.lr_side)}${lrSel('lr_side_2',r.lr_side_2)}</div>`
+      :lrSel('lr_side',r.lr_side);
     return`<tr>
-      <td class="muted">${i+1}</td>
-      <td><input value="${r.location||''}" onchange="qbU(${i},'location',this.value)" list="loc-list" placeholder="Room..." style="width:130px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"/></td>
-      <td><select onchange="qbU(${i},'blind_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
-        ${BLIND_TYPES.map(t=>`<option ${r.blind_type===t?'selected':''}>${t}</option>`).join('')}
-      </select></td>
+      <td class="muted" style="text-align:center">${i+1}</td>
+      <td><input value="${r.location||''}" onchange="qbU(${i},'location',this.value)" list="loc-list" placeholder="Room..." style="width:110px;${si}"/></td>
+      <td><select onchange="qbU(${i},'blind_type',this.value)" style="${si}">${BLIND_TYPES.map(t=>`<option ${r.blind_type===t?'selected':''}>${t}</option>`).join('')}</select></td>
       <td>${qbFabricCell(i,r)}</td>
-      <td><select onchange="qbU(${i},'cassette_colour',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
-        ${['White','Black','Grey','Silver','Mill'].map(c=>`<option ${r.cassette_colour===c?'selected':''}>${c}</option>`).join('')}
-      </select></td>
+      <td><select onchange="qbU(${i},'cassette_colour',this.value)" style="${si}">${['White','Black','Grey','Silver','Mill'].map(c=>`<option ${r.cassette_colour===c?'selected':''}>${c}</option>`).join('')}</select></td>
       <td style="white-space:nowrap">
-        <input type="number" value="${r.width_in}" onchange="qbU(${i},'width_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:40px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center"/>
-        <select onchange="qbU(${i},'width_frac',parseFloat(this.value)||0);qbCalcTotals()" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;width:50px">${fo.replace(`value="${r.width_frac}"`,`value="${r.width_frac}" selected`)}</select>
+        <input type="number" value="${r.width_in}" onchange="qbU(${i},'width_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:38px;text-align:center;${si}"/>
+        <select onchange="qbU(${i},'width_frac',parseFloat(this.value)||0);qbCalcTotals()" style="width:50px;${si}">${fo.replace(`value="${r.width_frac}"`,`value="${r.width_frac}" selected`)}</select>
       </td>
       <td style="white-space:nowrap">
-        <input type="number" value="${r.length_in}" onchange="qbU(${i},'length_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:40px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center"/>
-        <select onchange="qbU(${i},'length_frac',parseFloat(this.value)||0);qbCalcTotals()" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;width:50px">${fo.replace(`value="${r.length_frac}"`,`value="${r.length_frac}" selected`)}</select>
+        <input type="number" value="${r.length_in}" onchange="qbU(${i},'length_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:38px;text-align:center;${si}"/>
+        <select onchange="qbU(${i},'length_frac',parseFloat(this.value)||0);qbCalcTotals()" style="width:50px;${si}">${fo.replace(`value="${r.length_frac}"`,`value="${r.length_frac}" selected`)}</select>
       </td>
-      <td>${r.blind_type==='Double Roller'?`
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <div style="font-size:9px;color:var(--text3);font-weight:700">FRONT</div>
-          <select onchange="qbU(${i},'control_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:11px">
-            ${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.']].map(([v,l])=>`<option value="${v}" ${r.control_type===v?'selected':''}>${l}</option>`).join('')}
-          </select>
-          <div style="font-size:9px;color:var(--text3);font-weight:700">BACK</div>
-          <select onchange="qbU(${i},'control_type_2',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:11px">
-            ${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.']].map(([v,l])=>`<option value="${v}" ${r.control_type_2===v?'selected':''}>${l}</option>`).join('')}
-          </select>
-        </div>`:`<select onchange="qbU(${i},'control_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
-        ${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.']].map(([v,l])=>`<option value="${v}" ${r.control_type===v?'selected':''}>${l}</option>`).join('')}
-      </select>`}</td>
-      <td>${r.blind_type==='Double Roller'?`
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <select onchange="qbU(${i},'lr_side',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:11px">
-            <option value="R" ${r.lr_side==='R'?'selected':''}>R</option><option value="L" ${r.lr_side==='L'?'selected':''}>L</option>
-          </select>
-          <select onchange="qbU(${i},'lr_side_2',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:11px">
-            <option value="R" ${r.lr_side_2==='R'?'selected':''}>R</option><option value="L" ${r.lr_side_2==='L'?'selected':''}>L</option>
-          </select>
-        </div>`:`<select onchange="qbU(${i},'lr_side',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
-        <option value="R" ${r.lr_side==='R'?'selected':''}>R</option><option value="L" ${r.lr_side==='L'?'selected':''}>L</option>
-      </select>`}</td>
-      <td><select onchange="qbU(${i},'mount_type',this.value)" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px">
-        <option value="in" ${r.mount_type==='in'?'selected':''}>Inside</option><option value="out" ${r.mount_type==='out'?'selected':''}>Outside</option>
-      </select></td>
-      <td><input type="number" value="${r.qty||1}" min="1" onchange="qbU(${i},'qty',parseInt(this.value)||1);qbCalcTotals()" style="width:40px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center"/></td>
-      <td><input type="number" value="${fn(r.unit_price,2)}" step="0.01" onchange="qbU(${i},'unit_price',parseFloat(this.value)||0);qbCalcTotals()" style="width:70px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px"/></td>
-      <td><input type="number" value="${fn(r.discount_pct,2)}" min="0" max="100" step="0.5" onchange="qbU(${i},'discount_pct',parseFloat(this.value)||0);qbCalcTotals()" style="width:50px;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;text-align:center"/></td>
-      <td class="mono" style="font-weight:700;color:var(--accent)">$${fn(lineTotal,2)}</td>
-      <td style="display:flex;gap:2px">
-        <button class="btn bg bxs" onclick="qbDupRow(${i})" title="Duplicate" style="padding:2px 6px;font-size:11px">Copy</button>
-        <button class="btn bg bxs" style="color:var(--red);padding:2px 6px" onclick="qbDelRow(${i})" title="Delete">X</button>
-      </td>
+      <td>${ctrlCell}</td>
+      <td>${lrCell}</td>
+      <td><select onchange="qbU(${i},'mount_type',this.value)" style="${si}"><option value="in" ${r.mount_type==='in'?'selected':''}>In</option><option value="out" ${r.mount_type==='out'?'selected':''}>Out</option></select></td>
+      <td><input type="number" value="${r.qty||1}" min="1" onchange="qbU(${i},'qty',parseInt(this.value)||1);qbCalcTotals()" style="width:36px;text-align:center;${si}"/></td>
+      <td><input type="number" value="${fn(r.unit_price,2)}" step="0.01" onchange="qbU(${i},'unit_price',parseFloat(this.value)||0);qbCalcTotals()" style="width:66px;${si}"/></td>
+      <td><input type="number" value="${fn(r.discount_pct,2)}" min="0" max="100" step="0.5" onchange="qbU(${i},'discount_pct',parseFloat(this.value)||0);qbCalcTotals()" style="width:44px;text-align:center;${si}"/></td>
+      <td class="mono" style="font-weight:700;color:var(--accent);white-space:nowrap">$${fn(lineTotal,2)}</td>
+      <td><div style="display:flex;gap:2px">
+        <button class="btn bg bxs" onclick="qbDupRow(${i})" style="padding:2px 6px;font-size:11px">Copy</button>
+        <button class="btn bg bxs" style="color:var(--red);padding:2px 6px;font-size:11px" onclick="qbDelRow(${i})">✕</button>
+      </div></td>
     </tr>`;
   }).join('');
   $('qb_count').textContent=_qb.items.length;
