@@ -760,10 +760,20 @@ ${windows.map(w=>`
 </script>
 <script>
 // ── CLIENTS ──
-async function rClients(){
-  const clients=await get('/api/clients');window._cc=clients;
+function _renderClients(clients){
+  window._cc=clients;
   $('tactions').innerHTML=`<button class="btn bp bsm" onclick="mClient()">New Client</button>`;
-  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Clients (${clients.length})</h2></div><div class="tw"><table><thead><tr><th>Name</th><th>Address</th><th>Contact</th><th>Phone</th><th>Email</th><th></th></tr></thead><tbody>${clients.length?clients.map(c=>`<tr><td><strong>${c.name}</strong></td><td class="muted">${c.address||'—'}</td><td class="muted">${c.contact||'—'}</td><td class="muted">${c.phone||'—'}</td><td class="muted">${c.email||'—'}</td><td><button class="btn bg bxs" onclick="mClient(${c.id})">Edit</button></td></tr>`).join(''):emp('No clients yet','Add your first client to get started')}</tbody></table></div></div>`;
+  function render(q){
+    const list=q?clients.filter(c=>[c.name,c.address,c.contact,c.phone,c.email].join(' ').toLowerCase().includes(q.toLowerCase())):clients;
+    $('cl_tbody').innerHTML=list.length?list.map(c=>`<tr style="cursor:pointer" onclick="mClient(${c.id})"><td><strong style="color:var(--accent)">${c.name}</strong></td><td class="muted">${c.address||'—'}</td><td class="muted">${c.contact||'—'}</td><td class="muted">${c.phone||'—'}</td><td class="muted">${c.email||'—'}</td><td><button class="btn bg bxs" onclick="event.stopPropagation();mClient(${c.id})">Edit</button></td></tr>`).join(''):emp('No clients match','Try a different search');
+  }
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Clients (${clients.length})</h2><input id="cl_s" placeholder="Search clients…" oninput="window._clRender(this.value)" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;width:220px"/></div><div class="tw"><table><thead><tr><th>Name</th><th>Address</th><th>Contact</th><th>Phone</th><th>Email</th><th></th></tr></thead><tbody id="cl_tbody"></tbody></table></div></div>`;
+  window._clRender=render;render('');
+  setTimeout(()=>{const s=$('cl_s');if(s)s.focus();},50);
+}
+async function rClients(){
+  const cached=pcGet('clients');if(cached)_renderClients(cached);
+  const clients=await get('/api/clients');pcSet('clients',clients);_renderClients(clients);
 }
 function mClient(id){
   const c=id&&window._cc?window._cc.find(x=>x.id===id):null;
@@ -778,7 +788,7 @@ async function svClient(id){
   const d={name:$('cln').value.trim(),phone:$('clp').value,address:$('cla').value,contact:$('clc').value,email:$('cle').value,notes:$('clno').value};
   if(!d.name){toast('Name required','err');return;}
   if(id){await patch('/api/clients/'+id,d);}else{await post('/api/clients',d);}
-  closeModal();toast(id?'Client updated':'Client added');rClients();
+  closeModal();toast(id?'Client updated':'Client added');pcInvalidate('clients');rClients();
 }
 // Inline new customer from quote builder
 function qbNewClient(){
@@ -814,10 +824,21 @@ async function qbSaveNewClient(){
 // ── QUOTES ──
 function _renderQuotes(quotes){
   $('tactions').innerHTML=`<button class="btn bp bsm" onclick="nav('quote-edit')">New Quote</button>`;
-  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Quotes (${quotes.length})</h2></div><div class="tw"><table><thead><tr><th>Quote #</th><th>Client</th><th>Rep</th><th>Items</th><th>MSRP</th><th>Total</th><th>Paid</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody>${quotes.length?quotes.map(q=>{
-    const paid=q.amount_paid||0;const bal=q.total-paid;
-    return`<tr><td><a style="color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none" onclick="nav('quote-edit',${q.id})">${q.quote_number}</a></td><td><strong>${q.client_name||'—'}</strong></td><td class="muted">${q.rep_name||'—'}</td><td class="muted">${q.items?.length||0}</td><td class="mono">$${fn(q.subtotal,2)}</td><td class="mono"><strong>$${fn(q.total,2)}</strong></td><td class="mono" style="color:${bal>0?'var(--amber)':'var(--green)'}">${paid>0?'$'+fn(paid,2):'—'}</td><td>${qb(q.status)}</td><td class="muted">${fd(q.created_at)}</td><td style="display:flex;gap:4px"><button class="btn bsec bxs" onclick="nav('quote-edit',${q.id})">Edit</button>${can('owner','admin')&&q.status==='accepted'?`<button class="btn bs bxs" onclick="cvtQ(${q.id})">Convert to Job</button>`:''} ${can('owner','admin')&&q.status==='draft'?`<button class="btn bsec bxs" onclick="uQ(${q.id},'sent')">Mark Sent</button>`:''} ${q.status==='sent'?`<button class="btn bs bxs" onclick="uQ(${q.id},'accepted')">Accept</button>`:''}<button class="btn bg bxs" onclick="printQuote(${q.id})">Print</button><button class="btn bg bxs" onclick="downloadPDF(${q.id},'quote')">PDF</button></td></tr>`;
-  }).join(''):emp('No quotes yet','Create a quote for a client')}</tbody></table></div></div>`;
+  function render(sq,sf){
+    const list=quotes.filter(q=>{
+      const matchS=!sq||[q.quote_number,q.client_name,q.rep_name].join(' ').toLowerCase().includes(sq.toLowerCase());
+      const matchF=!sf||sf==='all'||q.status===sf;
+      return matchS&&matchF;
+    });
+    $('qt_tbody').innerHTML=list.length?list.map(q=>{
+      const paid=q.amount_paid||0;const bal=q.total-paid;
+      return`<tr style="cursor:pointer" onclick="nav('quote-edit',${q.id})"><td><strong style="color:var(--accent)">${q.quote_number}</strong></td><td><strong>${q.client_name||'—'}</strong></td><td class="muted">${q.rep_name||'—'}</td><td class="muted">${q.items?.length||0}</td><td class="mono">$${fn(q.subtotal,2)}</td><td class="mono"><strong>$${fn(q.total,2)}</strong></td><td class="mono" style="color:${bal>0?'var(--amber)':'var(--green)'}">${paid>0?'$'+fn(paid,2):'—'}</td><td>${qb(q.status)}</td><td class="muted">${fd(q.created_at)}</td><td style="display:flex;gap:4px" onclick="event.stopPropagation()"><button class="btn bsec bxs" onclick="nav('quote-edit',${q.id})">Edit</button>${can('owner','admin')&&q.status==='accepted'?`<button class="btn bs bxs" onclick="cvtQ(${q.id})">→ Job</button>`:''} ${can('owner','admin')&&q.status==='draft'?`<button class="btn bsec bxs" onclick="uQ(${q.id},'sent')">Sent</button>`:''} ${q.status==='sent'?`<button class="btn bs bxs" onclick="uQ(${q.id},'accepted')">Accept</button>`:''}<button class="btn bg bxs" onclick="downloadPDF(${q.id},'quote')">PDF</button></td></tr>`;
+    }).join(''):emp('No quotes match','Try a different search or filter');
+  }
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Quotes (${quotes.length})</h2><div style="display:flex;gap:8px;align-items:center"><input id="qt_s" placeholder="Search by quote #, client, rep…" oninput="window._qtRender()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;width:240px"/><select id="qt_f" onchange="window._qtRender()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px"><option value="all">All Statuses</option><option value="draft">Draft</option><option value="sent">Sent</option><option value="accepted">Accepted</option><option value="converted">Converted</option></select></div></div><div class="tw"><table><thead><tr><th>Quote #</th><th>Client</th><th>Rep</th><th>Items</th><th>MSRP</th><th>Total</th><th>Paid</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody id="qt_tbody"></tbody></table></div></div>`;
+  window._qtRender=()=>render($('qt_s')?.value||'',$('qt_f')?.value||'all');
+  render('','all');
+  setTimeout(()=>{const s=$('qt_s');if(s)s.focus();},50);
 }
 async function rQuotes(){
   const cached=pcGet('quotes');if(cached)_renderQuotes(cached);
