@@ -3,3 +3,5 @@ node_modules/
 *.pdf
 .vercel/
 .DS_Store
+.vercel
+.env*

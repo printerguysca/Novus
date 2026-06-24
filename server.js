@@ -38,7 +38,7 @@ async function calcCuts(w) {
     A:{c:-0.375,r:-1.0625,br:-1.0625,bc:-1.25},B:{c:-0.375,r:-0.875,br:-0.875,bc:-1.0625},
     C:{c:-0.3125,r:-0.75,br:-0.75,bc:-0.875},D:{c:-0.3125,r:-0.5625,br:-0.5625,bc:-0.6875},
     E:{c:0,r:-1.125,br:-1.125,bc:0},F:{c:-0.375,r:-1.0625,br:-1.0625,bc:0},
-    G:{c:-0.375,r:-0.875,br:-0.875,bc:0},H:{c:-0.3125,r:-0.75,br:-0.75,bc:-0.875},
+    G:{c:-0.375,r:-0.875,br:-0.875,bc:0},H:{c:-0.375,r:-0.875,br:-0.875,bc:-1.0625},
     I:{c:-0.3125,r:-0.75,br:-0.75,bc:-0.875},J:{c:-0.375,r:-1.0,br:-1.0,bc:0}
   };
   const p = P[w.profile_code]; if (!p) return null;
@@ -55,10 +55,12 @@ async function calcCuts(w) {
     fabric = data;
   }
   const cassette = (w.cassette_colour||'').toLowerCase();
+  const blindType = (w.blind_type||'').toLowerCase();
   // Use fabric_code text field as fallback when fabric_id not set (e.g. converted from quote)
   const fabricCode = fabric ? fabric.catalogue_no : (w.fabric_code||'');
-  const cut_fabric_drop = cassette === 'mill'
-    ? parseFloat((tl + (fabric?.slat_size||3)/2 - 0.5).toFixed(4))
+  // Zebra: height + slat_size/2 - 5/8". Roller / Double Roller: height + 6"
+  const cut_fabric_drop = blindType === 'zebra'
+    ? parseFloat((tl + (fabric?.slat_size||3)/2 - 0.625).toFixed(4))
     : parseFloat((tl + 6).toFixed(4));
   const prefix = fabricCode ? fabricCode[0].toUpperCase() : '';
   const fabric_meters = parseFloat(((prefix==='Z'||prefix==='S') ? cut_fabric_drop*0.0254*2 : cut_fabric_drop*0.0254).toFixed(4));
