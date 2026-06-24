@@ -555,7 +555,7 @@ async function mAddWin(jid){
     <div class="fss">Measurements (inches)</div>
     <div class="fr4"><div class="fg"><label>Width (whole)</label><input type="number" id="aww" placeholder="72" oninput="lc()"/></div><div class="fg"><label>Width Fraction</label><select id="awwf" onchange="lc()">${fo}</select></div><div class="fg"><label>Drop (whole)</label><input type="number" id="awh" placeholder="54" oninput="lc()"/></div><div class="fg"><label>Drop Fraction</label><select id="awhf" onchange="lc()">${fo}</select></div></div>
     <div class="fss">Configuration</div>
-    <div class="fr2"><div class="fg"><label>Fabric</label><select id="awfab" onchange="lc()"><option value="">— Select fabric —</option>${_fabs.map(f=>`<option value="${f.id}" data-c="${f.catalogue_no}">${f.catalogue_no} — ${f.alias} (${fn(f.remaining,1)}m available)</option>`).join('')}</select></div><div class="fg"><label>Profile (Material Type)</label><select id="awpr" onchange="lc()"><option value="">— Select profile —</option>${_profs.map(p=>`<option value="${p.code}">${p.code} — ${p.blind_type.toUpperCase()} — ${p.description}</option>`).join('')}</select></div><div class="fg"><label>Cassette Colour</label><select id="awcas" onchange="lc()"><option value="White">White</option><option value="Black">Black</option><option value="Grey">Grey</option><option value="Silver">Silver</option><option value="Mill">Mill (no cassette)</option></select></div><div class="fg"><label>Mount</label><select id="awmt" onchange="lc()"><option value="in">Inside (IB)</option><option value="out">Outside (OB)</option></select></div><div class="fg"><label>Control</label><select id="awct" onchange="lc()"><option value="chain">Chain</option><option value="wand">Wand</option><option value="motor">Motor</option><option value="motor-tubular">Motor Tubular</option></select></div><div class="fg"><label>Control Side</label><select id="awlr"><option value="R">Right</option><option value="L">Left</option></select></div></div>
+    <div class="fr2"><div class="fg"><label>Blind Type</label><select id="awbt" onchange="lc()"><option value="Zebra">Zebra</option><option value="Roller">Roller</option><option value="Double Roller">Double Roller</option></select></div><div class="fg"><label>Fabric</label><select id="awfab" onchange="lc()"><option value="">— Select fabric —</option>${_fabs.map(f=>`<option value="${f.id}" data-c="${f.catalogue_no}" data-s="${f.slat_size||0}">${f.catalogue_no} — ${f.alias} (${fn(f.remaining,1)}m available)</option>`).join('')}</select></div><div class="fg"><label>Profile (Material Type)</label><select id="awpr" onchange="lc()"><option value="">— Select profile —</option>${_profs.map(p=>`<option value="${p.code}">${p.code} — ${p.blind_type.toUpperCase()} — ${p.description}</option>`).join('')}</select></div><div class="fg"><label>Cassette Colour</label><select id="awcas" onchange="lc()"><option value="White">White</option><option value="Black">Black</option><option value="Grey">Grey</option><option value="Silver">Silver</option><option value="Mill">Mill (no cassette)</option></select></div><div class="fg"><label>Mount</label><select id="awmt" onchange="lc()"><option value="in">Inside (IB)</option><option value="out">Outside (OB)</option></select></div><div class="fg"><label>Control</label><select id="awct" onchange="lc()"><option value="chain">Chain</option><option value="wand">Wand</option><option value="motor">Motor</option><option value="motor-tubular">Motor Tubular</option></select></div><div class="fg"><label>Control Side</label><select id="awlr"><option value="R">Right</option><option value="L">Left</option></select></div></div>
     <div class="fss">Calculated Cuts (live preview)</div>
     <div id="cprev" style="color:var(--text3);font-size:13px;padding:12px 0">Fill in width, length and profile to calculate cuts.</div>
   </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="addWin(${jid})">Save Window</button></div></div>`);
@@ -563,12 +563,16 @@ async function mAddWin(jid){
 function lc(){
   const w=parseFloat($('aww')?.value)||0,wf=parseFloat($('awwf')?.value)||0,h=parseFloat($('awh')?.value)||0,hf=parseFloat($('awhf')?.value)||0;
   const pr=$('awpr')?.value,cas=$('awcas')?.value||'White',ct=$('awct')?.value||'chain';
-  const fc=$('awfab')?.selectedOptions[0]?.dataset.c||'';
+  const fabSel=$('awfab')?.selectedOptions[0];
+  const fc=fabSel?.dataset.c||'';
+  const slat=parseFloat(fabSel?.dataset.s||3)||3;
+  const bt=($('awbt')?.value||'Zebra').toLowerCase();
   if(!w||!h||!pr){$('cprev').innerHTML='<span style="color:var(--text3);font-size:13px">Fill in width, length and profile to calculate cuts.</span>';return;}
   const p=PDATA[pr];if(!p)return;
   const tw=w+wf,th=h+hf;
   const cc=(tw+p.c).toFixed(3),cr=(tw+p.r).toFixed(3),cbr=(tw+p.br).toFixed(3),cbc=p.bc?(tw+p.bc).toFixed(3):'N/A';
-  const fw=(parseFloat(cbr)-0.0625).toFixed(3),fd2=(cas==='Mill'?(th+1.5-.5):(th+6)).toFixed(3);
+  const fw=(parseFloat(cbr)-0.0625).toFixed(3);
+  const fd2=(bt==='zebra'?(th+slat/2-0.625):(th+6)).toFixed(3);
   const px=fc?fc[0].toUpperCase():'',fm=((px==='Z'||px==='S')?parseFloat(fd2)*.0254*2:parseFloat(fd2)*.0254).toFixed(3);
   let cord='L';if(ct.startsWith('m'))cord='None';else if(th<30)cord='S';else if(th<45)cord='M';
   const brk=tw>59?3:2;
@@ -583,7 +587,7 @@ function lc(){
 async function addWin(jid){
   if(!$('aww').value||!$('awh').value){toast('Width and height required','err');return;}
   if(!$('awpr').value){toast('Select a profile','err');return;}
-  const win=await post('/api/jobs/'+jid+'/windows',{location:$('awl').value,fabric_id:$('awfab').value?parseInt($('awfab').value):null,profile_code:$('awpr').value,cassette_colour:$('awcas').value,width_in:parseFloat($('aww').value)||0,width_frac:parseFloat($('awwf').value)||0,length_in:parseFloat($('awh').value)||0,length_frac:parseFloat($('awhf').value)||0,control_type:$('awct').value,lr_side:$('awlr').value,mount_type:$('awmt').value,notes:$('awn').value});
+  const win=await post('/api/jobs/'+jid+'/windows',{location:$('awl').value,blind_type:$('awbt').value,fabric_id:$('awfab').value?parseInt($('awfab').value):null,profile_code:$('awpr').value,cassette_colour:$('awcas').value,width_in:parseFloat($('aww').value)||0,width_frac:parseFloat($('awwf').value)||0,length_in:parseFloat($('awh').value)||0,length_frac:parseFloat($('awhf').value)||0,control_type:$('awct').value,lr_side:$('awlr').value,mount_type:$('awmt').value,notes:$('awn').value});
   closeModal();toast('Window added');_cJob.windows.push(win);
   document.querySelector('#wt').closest('.card').querySelector('.ch h2').textContent='Windows ('+_cJob.windows.length+')';
   renderWT(_cJob.windows,can('owner','admin','warehouse','factory'),can('owner','admin','sales','warehouse'));

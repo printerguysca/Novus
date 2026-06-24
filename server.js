@@ -303,6 +303,7 @@ app.post('/api/jobs/:job_id/windows', requireAuth, async (req, res) => {
   const { count } = await supabase.from('job_windows').select('*', { count: 'exact', head: true }).eq('job_id', job_id);
   const { data: win, error } = await supabase.from('job_windows').insert({
     job_id, window_no: (count||0)+1, location: data.location, fabric_id: data.fabric_id || null,
+    blind_type: data.blind_type || null,
     profile_code: data.profile_code, cassette_colour: data.cassette_colour,
     width_in: data.width_in, width_frac: data.width_frac, length_in: data.length_in, length_frac: data.length_frac,
     control_type: data.control_type, lr_side: data.lr_side, mount_type: data.mount_type, notes: data.notes,
