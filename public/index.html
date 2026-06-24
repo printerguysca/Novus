@@ -576,7 +576,7 @@ function lc(){
   // Bottom core only for Zebra/Sheer fabrics
   const cbc=(p.bc&&(px==='Z'||px==='S'))?(tw+p.bc).toFixed(3):'N/A';
   const fw=(parseFloat(cbr)-0.0625).toFixed(3);
-  const fd2=(bt==='zebra'?(th+slat/2-0.625):(th+6)).toFixed(3);,fm=((px==='Z'||px==='S')?parseFloat(fd2)*.0254*2:parseFloat(fd2)*.0254).toFixed(3);
+  const fd2=(bt==='zebra'?(th+slat/2-0.625):(th+6)).toFixed(3);const fm=((px==='Z'||px==='S')?parseFloat(fd2)*.0254*2:parseFloat(fd2)*.0254).toFixed(3);
   let cord='L';if(ct.startsWith('m'))cord='None';else if(th<30)cord='S';else if(th<45)cord='M';
   const brk=tw>59?3:2;
   $('cprev').innerHTML=`
