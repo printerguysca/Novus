@@ -774,17 +774,24 @@ function qbNewClient(){
 async function qbSaveNewClient(){
   const name=($('qbnc_n')?.value||'').trim();
   if(!name){toast('Name required','err');return;}
+  const btn=document.querySelector('#mo .btn.bp');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
   const d={name,phone:$('qbnc_p')?.value||'',address:$('qbnc_a')?.value||'',contact:$('qbnc_c')?.value||'',email:$('qbnc_e')?.value||''};
-  const c=await post('/api/clients',d);
-  if(!c?.id){toast('Failed to create customer','err');return;}
-  closeModal();
-  const sel=$('qb_client');
-  if(sel){
-    const opt=document.createElement('option');
-    opt.value=c.id;opt.textContent=c.name+(c.address?' — '+c.address:'');
-    sel.appendChild(opt);sel.value=c.id;
+  try{
+    const c=await post('/api/clients',d);
+    if(!c?.id){toast('No ID returned — check server logs','err');return;}
+    closeModal();
+    const sel=$('qb_client');
+    if(sel){
+      const opt=document.createElement('option');
+      opt.value=c.id;opt.textContent=c.name+(c.address?' — '+c.address:'');
+      sel.appendChild(opt);sel.value=c.id;
+    }
+    toast('Customer added — selected in quote');
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='Add Customer';}
+    toast(e.message||'Failed to save customer','err');
   }
-  toast('Customer added — selected in quote');
 }
 // ── QUOTES ──
 async function rQuotes(){
