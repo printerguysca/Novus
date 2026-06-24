@@ -420,7 +420,9 @@ app.post('/api/quotes', requireAuth, ownerAdminSales, async (req, res) => {
       length_in: i.length_in, length_frac: i.length_frac||0, qty: i.qty||1,
       unit_price: i.unit_price||0, line_total: parseFloat((lt - lt*((i.discount_pct||0)/100)).toFixed(2)),
       discount_pct: i.discount_pct||0, cassette_colour: i.cassette_colour||null,
-      control_type: i.control_type||null, lr_side: i.lr_side||null, mount_type: i.mount_type||null
+      control_type: i.control_type||null, lr_side: i.lr_side||null, mount_type: i.mount_type||null,
+      fabric_code_2: i.fabric_code_2||null,
+      control_type_2: i.control_type_2||null, lr_side_2: i.lr_side_2||null
     });
   }
   res.json(q);
@@ -457,7 +459,9 @@ app.put('/api/quotes/:id', requireAuth, ownerAdminSales, async (req, res) => {
       length_in: i.length_in, length_frac: i.length_frac||0, qty: i.qty||1,
       unit_price: i.unit_price||0, line_total: parseFloat((lt - lt*((i.discount_pct||0)/100)).toFixed(2)),
       discount_pct: i.discount_pct||0, cassette_colour: i.cassette_colour||null,
-      control_type: i.control_type||null, lr_side: i.lr_side||null, mount_type: i.mount_type||null
+      control_type: i.control_type||null, lr_side: i.lr_side||null, mount_type: i.mount_type||null,
+      fabric_code_2: i.fabric_code_2||null,
+      control_type_2: i.control_type_2||null, lr_side_2: i.lr_side_2||null
     });
   }
   const { data } = await supabase.from('quotes_view').select('*').eq('id', req.params.id).single();
@@ -475,11 +479,41 @@ app.patch('/api/quotes/:id', requireAuth, ownerAdminSales, async (req, res) => {
 app.post('/api/quotes/:id/convert', requireAuth, ownerAdmin, async (req, res) => {
   const { data: q } = await supabase.from('quotes').select('*').eq('id', req.params.id).single();
   if (!q) return res.status(404).json({ error: 'Not found' });
+  const { data: qItems } = await supabase.from('quote_items').select('*').eq('quote_id', q.id).order('id');
   const job_number = await genNumber('jobs', 'job_number', 'SB');
-  const { data: job } = await supabase.from('jobs').insert({
+  const { data: job, error: jobErr } = await supabase.from('jobs').insert({
     job_number, client_id: q.client_id, rep_id: q.created_by, rep: req.user.name,
     date_in: new Date().toISOString().split('T')[0], notes: `Converted from ${q.quote_number}`
   }).select().single();
+  if (jobErr) return res.status(500).json({ error: jobErr.message });
+  // Copy each quote item → job windows (expand by qty)
+  let windowNo = 1;
+  for (const item of (qItems || [])) {
+    const count = Math.max(1, parseInt(item.qty) || 1);
+    for (let n = 0; n < count; n++) {
+      await supabase.from('job_windows').insert({
+        job_id: job.id,
+        window_no: windowNo++,
+        location: item.location || '',
+        blind_type: item.blind_type || null,
+        fabric_id: item.fabric_id || null,
+        fabric_code: item.fabric_code || null,
+        fabric_code_2: item.fabric_code_2 || null,
+        profile_code: item.profile_code || null,
+        cassette_colour: item.cassette_colour || null,
+        width_in: item.width_in || 0,
+        width_frac: item.width_frac || 0,
+        length_in: item.length_in || 0,
+        length_frac: item.length_frac || 0,
+        control_type: item.control_type || 'chain',
+        lr_side: item.lr_side || 'R',
+        control_type_2: item.control_type_2 || null,
+        lr_side_2: item.lr_side_2 || null,
+        mount_type: item.mount_type || 'in',
+        notes: item.blind_type || null
+      });
+    }
+  }
   await supabase.from('quotes').update({ status: 'converted', job_id: job.id }).eq('id', q.id);
   res.json({ job_id: job.id, job_number });
 });
@@ -561,7 +595,10 @@ function generateQuotePDF(doc_type, q, items) {
     doc.moveTo(M,yT+28).lineTo(W-M,yT+28).lineWidth(0.5).stroke(GREY_LINE);
     doc.fontSize(9).font('Helvetica').fillColor(DARK);
     cx=M+5;
-    const vals=[String(i+1),it.location||'—',it.blind_type||'—',it.fabric_code||it.hc_custom||'—',it.cassette_colour||'—',fracStr(it.width_in,it.width_frac),fracStr(it.length_in,it.length_frac),ctrlLabel(it.control_type),it.lr_side||'—',it.mount_type==='in'?'In':'Out',String(it.qty||1)];
+    const fabricDisplay = it.blind_type==='Double Roller'
+      ? [it.fabric_code||'—', it.fabric_code_2||'—'].filter(Boolean).join(' / ')
+      : (it.fabric_code||it.hc_custom||'—');
+    const vals=[String(i+1),it.location||'—',it.blind_type||'—',fabricDisplay,it.cassette_colour||'—',fracStr(it.width_in,it.width_frac),fracStr(it.length_in,it.length_frac),ctrlLabel(it.control_type),it.lr_side||'—',it.mount_type==='in'?'In':'Out',String(it.qty||1)];
     cols.forEach((c,j)=>{doc.text(vals[j]||'', cx, yT+9, {width:c.w-4});cx+=c.w;});
     yT+=28;
   });
