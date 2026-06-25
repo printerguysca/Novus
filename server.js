@@ -33,15 +33,30 @@ async function logMovement(item_type, item_id, item_name, movement_type, qty, jo
   await supabase.from('movements').insert({ item_type, item_id, item_name, movement_type, qty, job_id, shipment_id, notes });
 }
 
+// Deductions now live in the profiles table (editable in the GUI). These hardcoded
+// values are only a last-resort fallback if the DB read fails.
+const DEFAULT_P = {
+  A:{c:-0.375,r:-1.0625,br:-1.0625,bc:-1.25},B:{c:-0.375,r:-0.875,br:-0.875,bc:-1.0625},
+  C:{c:-0.3125,r:-0.75,br:-0.75,bc:-0.875},D:{c:-0.3125,r:-0.5625,br:-0.5625,bc:-0.6875},
+  E:{c:0,r:-1.125,br:-1.125,bc:0},F:{c:-0.375,r:-1.0625,br:-0.875,bc:0},
+  G:{c:-0.375,r:-0.875,br:-0.875,bc:0},H:{c:-0.3125,r:-0.75,br:-0.75,bc:-0.875},
+  I:{c:-0.3125,r:-0.75,br:-0.75,bc:-0.875},J:{c:-0.375,r:-1.0,br:-1.0,bc:0}
+};
+let _profMap = null, _profMapAt = 0;
+async function getProfileMap() {
+  if (_profMap && Date.now() - _profMapAt < 60000) return _profMap;
+  try {
+    const { data } = await supabase.from('profiles').select('code,cassette_ded,roller_ded,bottom_rail_ded,bottom_core_ded');
+    const m = {};
+    (data||[]).forEach(p => { if (p.code) m[p.code] = { c:p.cassette_ded, r:p.roller_ded, br:p.bottom_rail_ded, bc:p.bottom_core_ded }; });
+    if (Object.keys(m).length) { _profMap = m; _profMapAt = Date.now(); }
+  } catch (e) { /* keep last good map / fall through to fallback */ }
+  return _profMap || {};
+}
+function invalidateProfileCache() { _profMap = null; _profMapAt = 0; }
 async function calcCuts(w) {
-  const P = {
-    A:{c:-0.375,r:-1.0625,br:-1.0625,bc:-1.25},B:{c:-0.375,r:-0.875,br:-0.875,bc:-1.0625},
-    C:{c:-0.3125,r:-0.75,br:-0.75,bc:-0.875},D:{c:-0.3125,r:-0.5625,br:-0.5625,bc:-0.6875},
-    E:{c:0,r:-1.125,br:-1.125,bc:0},F:{c:-0.375,r:-1.0625,br:-1.0625,bc:0},
-    G:{c:-0.375,r:-0.875,br:-0.875,bc:0},H:{c:-0.3125,r:-0.875,br:-0.875,bc:-1.0625},
-    I:{c:-0.3125,r:-0.75,br:-0.75,bc:-0.875},J:{c:-0.375,r:-1.0,br:-1.0,bc:0}
-  };
-  const p = P[w.profile_code]; if (!p) return null;
+  const PM = await getProfileMap();
+  const p = PM[w.profile_code] || DEFAULT_P[w.profile_code]; if (!p) return null;
   const tw = (parseFloat(w.width_in)||0) + (parseFloat(w.width_frac)||0);
   const tl = (parseFloat(w.length_in)||0) + (parseFloat(w.length_frac)||0);
   const cut_cassette = parseFloat((tw+p.c).toFixed(4));
@@ -53,6 +68,13 @@ async function calcCuts(w) {
   if (!fabric && w.fabric_id) {
     const { data } = await supabase.from('fabrics').select('*').eq('id', w.fabric_id).single();
     fabric = data;
+  }
+  // Fallback: resolve by catalogue code so the REAL slat size is always used for the
+  // zebra drop. Quote-converted windows store fabric_code (text) and no fabric_id —
+  // without this they silently fell back to the 3" default slat.
+  if (!fabric && w.fabric_code) {
+    const { data } = await supabase.from('fabrics').select('*').eq('catalogue_no', w.fabric_code).limit(1);
+    fabric = (data && data[0]) || null;
   }
   const cassette = (w.cassette_colour||'').toLowerCase();
   // Use fabric_code text field as fallback when fabric_id not set (e.g. converted from quote)
@@ -72,7 +94,7 @@ async function calcCuts(w) {
     : parseFloat((tl + 6).toFixed(4));
   const fabric_meters = parseFloat(((prefix==='Z'||prefix==='S') ? cut_fabric_drop*0.0254*2 : cut_fabric_drop*0.0254).toFixed(4));
   const ctrl = (w.control_type||'').toLowerCase();
-  const cord_wand_size = ctrl.startsWith('m') ? 'None' : tl<30 ? 'S' : tl<45 ? 'M' : 'L';
+  const cord_wand_size = (ctrl.startsWith('m') || ctrl === 'cordless') ? 'None' : tl<30 ? 'S' : tl<45 ? 'M' : 'L';
   const bracket_count = tw > 59 ? 3 : 2;
   return { cut_cassette, cut_roller, cut_bottom_rail, cut_bottom_core, cut_fabric_width, cut_fabric_drop, fabric_meters, cord_wand_size, bracket_count };
 }
@@ -231,9 +253,103 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
 // ─── PROFILES ────────────────────────────────────────────────────────────────
 
 app.get('/api/profiles', requireAuth, async (req, res) => {
-  res.set('Cache-Control', 'private, max-age=300');
-  const { data } = await supabase.from('profiles').select('*').order('code');
+  res.set('Cache-Control', 'no-store');
+  const { data } = await supabase.from('profiles').select('*').is('deleted_at', null).order('code');
   res.json(data);
+});
+// Edit a profile's deductions (owner/admin). Validates numbers; invalidates the calc cache.
+app.patch('/api/profiles/:id', requireAuth, ownerAdmin, async (req, res) => {
+  const updates = {};
+  for (const k of ['cassette_ded','roller_ded','bottom_rail_ded','bottom_core_ded']) {
+    if (k in req.body) {
+      const n = parseFloat(req.body[k]);
+      if (isNaN(n) || n > 0 || n < -3) return res.status(400).json({ error: `${k} must be a number between -3 and 0` });
+      updates[k] = n;
+    }
+  }
+  if ('description' in req.body) updates.description = String(req.body.description || '');
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nothing to update' });
+  const { data, error } = await supabase.from('profiles').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  invalidateProfileCache();
+  res.json(data);
+});
+// Active jobs that use a given profile (for the post-edit recalc prompt)
+app.get('/api/profiles/:code/affected', requireAuth, ownerAdmin, async (req, res) => {
+  const { data: wins } = await supabase.from('job_windows').select('job_id').eq('profile_code', req.params.code);
+  const ids = [...new Set((wins||[]).map(w => w.job_id))];
+  if (!ids.length) return res.json([]);
+  const { data: jobs } = await supabase.from('jobs').select('id,job_number').in('id', ids).is('deleted_at', null).order('job_number');
+  res.json(jobs || []);
+});
+// Recalculate every window using a profile (after its deductions changed)
+app.post('/api/profiles/:code/recalc', requireAuth, ownerAdmin, async (req, res) => {
+  const { data: wins } = await supabase.from('job_windows').select('*').eq('profile_code', req.params.code);
+  let n = 0;
+  for (const w of (wins||[])) {
+    const cuts = await calcCuts(w);
+    if (!cuts) continue;
+    await supabase.from('job_windows').update({
+      cut_cassette: cuts.cut_cassette, cut_roller: cuts.cut_roller,
+      cut_bottom_rail: cuts.cut_bottom_rail, cut_bottom_core: cuts.cut_bottom_core,
+      cut_fabric_width: cuts.cut_fabric_width, cut_fabric_drop: cuts.cut_fabric_drop,
+      fabric_meters: cuts.fabric_meters, cord_wand_size: cuts.cord_wand_size,
+      bracket_count: cuts.bracket_count
+    }).eq('id', w.id);
+    n++;
+  }
+  res.json({ recalculated: n });
+});
+// Create a new profile (owner/admin)
+app.post('/api/profiles', requireAuth, ownerAdmin, async (req, res) => {
+  const code = (req.body.code||'').trim();
+  if (!code) return res.status(400).json({ error: 'Code is required' });
+  const { data: existing } = await supabase.from('profiles').select('id').eq('code', code).limit(1);
+  if (existing && existing.length) return res.status(409).json({ error: `Profile code "${code}" already exists` });
+  const rec = { code, description: String(req.body.description||''), blind_type: req.body.blind_type || null };
+  for (const k of ['cassette_ded','roller_ded','bottom_rail_ded','bottom_core_ded']) {
+    const n = parseFloat(req.body[k]);
+    if (isNaN(n) || n > 0 || n < -3) return res.status(400).json({ error: `${k} must be a number between -3 and 0` });
+    rec[k] = n;
+  }
+  const { data, error } = await supabase.from('profiles').insert(rec).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  invalidateProfileCache();
+  res.json(data);
+});
+// Soft-delete a profile to Trash (owner/admin). Reversible; the calc still resolves its
+// deductions for windows that already use it, so existing cut sheets are unaffected.
+app.delete('/api/profiles/:id', requireAuth, ownerAdmin, async (req, res) => {
+  const { error } = await supabase.from('profiles').update({ deleted_at: new Date().toISOString() }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  invalidateProfileCache();
+  res.json({ ok: true });
+});
+app.get('/api/profiles/trash', requireAuth, ownerAdmin, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const { data } = await supabase.from('profiles').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false });
+  const now = Date.now();
+  res.json((data||[]).map(p => ({ ...p, days_left: Math.max(0, Math.ceil((new Date(p.deleted_at).getTime()+90*864e5-now)/864e5)) })));
+});
+app.post('/api/profiles/:id/restore', requireAuth, ownerAdmin, async (req, res) => {
+  const { error } = await supabase.from('profiles').update({ deleted_at: null }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  invalidateProfileCache();
+  res.json({ ok: true });
+});
+// Permanently delete a trashed profile — blocked while any ACTIVE job/quote still uses it
+app.delete('/api/profiles/:id/purge', requireAuth, ownerAdmin, async (req, res) => {
+  const { data: prof } = await supabase.from('profiles').select('code').eq('id', req.params.id).single();
+  if (!prof) return res.status(404).json({ error: 'Not found' });
+  const [{ data: wins }, { data: qitems }] = await Promise.all([
+    supabase.from('job_windows').select('id, jobs!inner(deleted_at)').eq('profile_code', prof.code).is('jobs.deleted_at', null),
+    supabase.from('quote_items').select('id, quotes!inner(deleted_at)').eq('profile_code', prof.code).is('quotes.deleted_at', null)
+  ]);
+  if ((wins||[]).length + (qitems||[]).length > 0) return res.status(409).json({ error: 'in_use' });
+  const { error } = await supabase.from('profiles').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  invalidateProfileCache();
+  res.json({ ok: true });
 });
 
 // ─── CLIENTS ─────────────────────────────────────────────────────────────────

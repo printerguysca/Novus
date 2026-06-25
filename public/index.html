@@ -132,6 +132,8 @@ tbody tr:hover td{background:var(--surface2);}
 .srch{height:36px;min-width:240px;max-width:340px;padding:0 12px 0 34px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);background:var(--white) no-repeat 11px center;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238a97a8' stroke-width='2' stroke-linecap='round' viewBox='0 0 24 24'><circle cx='11' cy='11' r='7'/><path d='M21 21l-4.3-4.3'/></svg>");background-size:15px;outline:none;transition:border .15s,box-shadow .15s;}
 .srch:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring);}
 .srch::-webkit-search-cancel-button{cursor:pointer;}
+input.nospin::-webkit-outer-spin-button,input.nospin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+input.nospin{-moz-appearance:textfield;appearance:textfield;}
 .fg input[type=color]{height:36px;padding:2px 4px;cursor:pointer;}
 .fr2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
@@ -260,7 +262,9 @@ let ME=null,TOKEN=null,_fabs=[],_hw=[],_profs=[],_users=[],_cJob=null;
 let calY=new Date().getFullYear(),calM=new Date().getMonth()+1;
 const LOCS=['Warehouse','Factory','Installer'];
 const LC={Warehouse:'#2563eb',Factory:'#7c3aed',Installer:'#d97706'};
-const PDATA={A:{c:-.375,r:-1.0625,br:-1.0625,bc:-1.25},B:{c:-.375,r:-.875,br:-.875,bc:-1.0625},C:{c:-.3125,r:-.75,br:-.75,bc:-.875},D:{c:-.3125,r:-.5625,br:-.5625,bc:-.6875},E:{c:0,r:-1.125,br:-1.125,bc:0},F:{c:-.375,r:-1.0625,br:-1.0625,bc:0},G:{c:-.375,r:-.875,br:-.875,bc:0},H:{c:-.3125,r:-.875,br:-.875,bc:-1.0625},I:{c:-.3125,r:-.75,br:-.75,bc:-.875},J:{c:-.375,r:-1.0,br:-1.0,bc:0}};
+const PDATA={A:{c:-.375,r:-1.0625,br:-1.0625,bc:-1.25},B:{c:-.375,r:-.875,br:-.875,bc:-1.0625},C:{c:-.3125,r:-.75,br:-.75,bc:-.875},D:{c:-.3125,r:-.5625,br:-.5625,bc:-.6875},E:{c:0,r:-1.125,br:-1.125,bc:0},F:{c:-.375,r:-1.0625,br:-.875,bc:0},G:{c:-.375,r:-.875,br:-.875,bc:0},H:{c:-.3125,r:-.75,br:-.75,bc:-.875},I:{c:-.3125,r:-.75,br:-.75,bc:-.875},J:{c:-.375,r:-1.0,br:-1.0,bc:0}};
+// Live deductions from the DB (profiles table), with hardcoded PDATA as fallback
+function pDed(code){const p=(_profs||[]).find(x=>x.code===code);return p?{c:p.cassette_ded,r:p.roller_ded,br:p.bottom_rail_ded,bc:p.bottom_core_ded}:PDATA[code];}
 // Zebra/Roller price lookup — width cols x height rows (May 2026)
 const PRICE_W=[24,30,36,48,54,60,66,72,84,90,96,102,108];
 const PRICE_H=[36,42,48,54,60,66,72,78,84,90,96,102,108,114,120];
@@ -394,8 +398,8 @@ function fabOptsDoubleRoller(selected){
   return'<option value="">Select fabric...</option>'+all.map(f=>`<option value="${f.code}" ${selected===f.code?'selected':''}>${fabLabel(f)}</option>`).join('');
 }
 const ROLE_NAV={
-  owner:[{s:'Overview'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'Jobs'},{s:'Production'},{p:'production',l:'Production Queue'},{s:'Office'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'},{s:'Warehouse'},{p:'fabric',l:'Fabric Stock'},{p:'hardware',l:'Hardware Stock'},{p:'shipments',l:'Shipments'},{p:'transfers',l:'Transfers'},{p:'movements',l:'Movement Log'},{s:'Admin'},{p:'reports',l:'Reports'},{p:'users',l:'Users'}],
-  admin:[{s:'Overview'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'All Jobs'},{s:'Office'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'},{s:'Warehouse'},{p:'fabric',l:'Fabric (view)'},{p:'transfers',l:'Transfers'},{s:'Admin'},{p:'users',l:'Users'}],
+  owner:[{s:'Overview'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'Jobs'},{s:'Production'},{p:'production',l:'Production Queue'},{s:'Office'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'},{s:'Warehouse'},{p:'fabric',l:'Fabric Stock'},{p:'hardware',l:'Hardware Stock'},{p:'shipments',l:'Shipments'},{p:'transfers',l:'Transfers'},{p:'movements',l:'Movement Log'},{s:'Admin'},{p:'reports',l:'Reports'},{p:'users',l:'Users'},{p:'cutprofiles',l:'Cut Profiles'}],
+  admin:[{s:'Overview'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'All Jobs'},{s:'Office'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'},{s:'Warehouse'},{p:'fabric',l:'Fabric (view)'},{p:'transfers',l:'Transfers'},{s:'Admin'},{p:'users',l:'Users'},{p:'cutprofiles',l:'Cut Profiles'}],
   sales:[{s:'My Work'},{p:'dashboard',l:'Dashboard'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'jobs',l:'My Jobs'},{s:'Reference'},{p:'fabric',l:'Fabric Library'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'}],
   warehouse:[{s:'Operations'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'Jobs'},{p:'production',l:'Production Queue'},{s:'Inventory'},{p:'fabric',l:'Fabric Stock'},{p:'hardware',l:'Hardware Stock'},{p:'shipments',l:'Shipments'},{p:'transfers',l:'Transfers'},{s:'Logs'},{p:'movements',l:'Movement Log'},{p:'tasks',l:'Tasks'}],
   installer:[{s:'My Work'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'My Jobs'},{p:'tasks',l:'Tasks'},{p:'calendar',l:'Calendar'}],
@@ -511,6 +515,59 @@ function nav(page,param){
   else if(p==='movements')rMovements();else if(p==='tasks')rTasks();else if(p==='calendar')rCalendar();
   else if(p==='users')rUsers();else if(p==='reports')rReports();
   else if(p==='production')rProduction();
+  else if(p==='cutprofiles')rCutProfiles();
+}
+async function rCutProfiles(){
+  if(!can('owner','admin')){$('content').innerHTML='<div class="card"><div class="mb"><div class="empty"><div class="et">Not allowed</div></div></div></div>';return;}
+  $('tactions').innerHTML='<button class="btn bsec bsm" onclick="rCutProfilesTrash()">Trash</button><button class="btn bp bsm" onclick="mAddProfile()">Add Profile</button>';
+  const profs=await get('/api/profiles?_t='+Date.now());_profs=profs;
+  const row=p=>`<tr id="pf${p.id}"><td><strong>${p.code}</strong></td><td><input class="pfi" data-f="description" value="${(p.description||'').replace(/"/g,'&quot;')}" style="width:100%;min-width:200px;padding:6px 9px;border:1px solid var(--border2);border-radius:6px;font-size:12px"/></td><td><input class="pfi nospin" type="number" step="0.0625" data-f="cassette_ded" value="${p.cassette_ded}" style="width:80px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:6px;font-size:12px"/></td><td><input class="pfi nospin" type="number" step="0.0625" data-f="roller_ded" value="${p.roller_ded}" style="width:80px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:6px;font-size:12px"/></td><td><input class="pfi nospin" type="number" step="0.0625" data-f="bottom_rail_ded" value="${p.bottom_rail_ded}" style="width:80px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:6px;font-size:12px"/></td><td><input class="pfi nospin" type="number" step="0.0625" data-f="bottom_core_ded" value="${p.bottom_core_ded}" style="width:80px;text-align:center;padding:6px;border:1px solid var(--border2);border-radius:6px;font-size:12px"/></td><td style="display:flex;gap:4px"><button class="btn bp bxs" onclick="savePF(${p.id},'${p.code}')">Save</button><button class="btn bg bxs" style="color:var(--red)" onclick="delPF(${p.id},'${p.code}')">Delete</button></td></tr>`;
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Cut Profiles</h2><span class="muted" style="font-size:12px">Deductions (inches, negative) are added to the ordered width. Edits apply to all future cuts.</span></div><div class="tw"><table><thead><tr><th>Code</th><th>Description</th><th>Cassette</th><th>Roller</th><th>Bottom rail</th><th>Bottom core</th><th></th></tr></thead><tbody>${profs.map(row).join('')}</tbody></table></div></div>`;
+}
+async function savePF(id,code){
+  const r=document.getElementById('pf'+id);const body={};
+  r.querySelectorAll('.pfi').forEach(i=>{body[i.dataset.f]=i.dataset.f==='description'?i.value:parseFloat(i.value);});
+  try{await patch('/api/profiles/'+id,body);}catch(e){toast(e.message||'Save failed','err');return;}
+  toast('Profile '+code+' saved');
+  const aff=await get('/api/profiles/'+code+'/affected');
+  if(aff&&aff.length){
+    if(await confirmDialog(`${aff.length} active job(s) use profile ${code}:\n${aff.map(j=>j.job_number).join(', ')}\n\nRecalculate their cut sheets now to apply the new deductions?`,{danger:false,okLabel:'Recalculate'})){
+      const res=await post('/api/profiles/'+code+'/recalc',{});
+      toast('Recalculated '+(res.recalculated||0)+' window(s)');pcInvalidate('jobs');
+    }
+  }
+}
+function mAddProfile(){
+  openModal(`<div class="md mmd"><div class="mh"><h3>New Cut Profile</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fr2"><div class="fg"><label>Code *</label><input id="npcode" placeholder="e.g. K" maxlength="6"/></div><div class="fg"><label>Description</label><input id="npdesc" placeholder="e.g. Roller — slim cassette"/></div></div>
+    <div class="fr4"><div class="fg"><label>Cassette</label><input class="nospin" type="number" step="0.0625" id="npc" value="0"/></div><div class="fg"><label>Roller</label><input class="nospin" type="number" step="0.0625" id="npr" value="0"/></div><div class="fg"><label>Bottom rail</label><input class="nospin" type="number" step="0.0625" id="npbr" value="0"/></div><div class="fg"><label>Bottom core</label><input class="nospin" type="number" step="0.0625" id="npbc" value="0"/></div></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">Deductions are negative inches added to ordered width (e.g. −0.375). Bottom core 0 = roller (no core).</div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="saveNewProfile()">Create</button></div></div>`);
+}
+async function saveNewProfile(){
+  const body={code:($('npcode').value||'').trim(),description:$('npdesc').value,cassette_ded:parseFloat($('npc').value),roller_ded:parseFloat($('npr').value),bottom_rail_ded:parseFloat($('npbr').value),bottom_core_ded:parseFloat($('npbc').value)};
+  if(!body.code){toast('Code required','err');return;}
+  try{await post('/api/profiles',body);}catch(e){toast(e.message||'Create failed','err');return;}
+  closeModal();toast('Profile '+body.code+' created');rCutProfiles();
+}
+async function delPF(id,code){
+  if(!await confirmType(code,{danger:false,okLabel:'Move to Trash',message:`Move cut profile <strong>${code}</strong> to Trash? Kept 90 days, then auto-deleted. You can restore it before then.`}))return;
+  try{await del('/api/profiles/'+id);}catch(e){toast(e.message||'Delete failed','err');return;}
+  toast('Profile '+code+' moved to Trash');
+  const row=document.getElementById('pf'+id);if(row)row.remove();      // remove instantly, no cache-dependent refetch
+  _profs=(_profs||[]).filter(p=>p.id!==id);                            // keep dropdowns in sync immediately
+}
+async function rCutProfilesTrash(){
+  if(!can('owner','admin')){$('content').innerHTML='';return;}
+  const trash=await get('/api/profiles/trash?_t='+Date.now());
+  $('tactions').innerHTML='<button class="btn bp bsm" onclick="rCutProfiles()">← Back to Profiles</button>';
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Profiles Trash (${trash.length})</h2><span class="muted" style="font-size:12px">Kept 90 days, then deleted automatically</span></div><div class="tw"><table><thead><tr><th>Code</th><th>Description</th><th>Deleted</th><th>Auto-deletes in</th><th>Actions</th></tr></thead><tbody>${trash.length?trash.map(p=>`<tr><td><strong>${p.code}</strong></td><td class="muted">${p.description||'—'}</td><td class="muted">${fd(p.deleted_at)}</td><td><span class="badge ${p.days_left<=7?'brd':p.days_left<=30?'bam':'bgy'}">${p.days_left} day${p.days_left===1?'':'s'}</span></td><td style="display:flex;gap:4px"><button class="btn bsec bxs" onclick="restoreProfile(${p.id},'${p.code}')">Restore</button><button class="btn bg bxs" style="color:var(--red)" onclick="purgeProfile(${p.id},'${p.code}')">Delete Forever</button></td></tr>`).join(''):emp('Trash is empty','Deleted profiles appear here for 90 days')}</tbody></table></div></div>`;
+}
+async function restoreProfile(id,code){await post('/api/profiles/'+id+'/restore',{});toast('Profile '+code+' restored');rCutProfilesTrash();}
+async function purgeProfile(id,code){
+  if(!await confirmType(code,{message:`Permanently delete profile <strong>${code}</strong>? This cannot be undone.`,okLabel:'Delete forever'}))return;
+  try{await del('/api/profiles/'+id+'/purge');}catch(e){toast(e.message==='in_use'?'Still used by active jobs/quotes — reassign first':(e.message||'Delete failed'),'err');return;}
+  toast('Profile '+code+' permanently deleted');rCutProfilesTrash();
 }
 
 // ── DASHBOARD ──
@@ -603,7 +660,7 @@ async function mAddWin(jid){
     <div class="fss">Measurements (inches)</div>
     <div class="fr4"><div class="fg"><label>Width (whole)</label><input type="number" id="aww" placeholder="72" oninput="lc()"/></div><div class="fg"><label>Width Fraction</label><select id="awwf" onchange="lc()">${fo}</select></div><div class="fg"><label>Drop (whole)</label><input type="number" id="awh" placeholder="54" oninput="lc()"/></div><div class="fg"><label>Drop Fraction</label><select id="awhf" onchange="lc()">${fo}</select></div></div>
     <div class="fss">Configuration</div>
-    <div class="fr2"><div class="fg"><label>Blind Type</label><select id="awbt" onchange="lc()"><option value="Zebra">Zebra</option><option value="Roller">Roller</option><option value="Double Roller">Double Roller</option></select></div><div class="fg"><label>Fabric</label><select id="awfab" onchange="lc()"><option value="">— Select fabric —</option>${_fabs.map(f=>`<option value="${f.id}" data-c="${f.catalogue_no}" data-s="${f.slat_size||0}">${f.catalogue_no} — ${f.alias} (${fn(f.remaining,1)}m available)</option>`).join('')}</select></div><div class="fg"><label>Profile (Material Type)</label><select id="awpr" onchange="lc()"><option value="">— Select profile —</option>${_profs.map(p=>`<option value="${p.code}">${p.code} — ${p.blind_type.toUpperCase()} — ${p.description}</option>`).join('')}</select></div><div class="fg"><label>Cassette Colour</label><select id="awcas" onchange="lc()"><option value="White">White</option><option value="Black">Black</option><option value="Grey">Grey</option><option value="Silver">Silver</option><option value="Mill">Mill (no cassette)</option></select></div><div class="fg"><label>Mount</label><select id="awmt" onchange="lc()"><option value="in">Inside (IB)</option><option value="out">Outside (OB)</option></select></div><div class="fg"><label>Control</label><select id="awct" onchange="lc()"><option value="chain">Chain</option><option value="wand">Wand</option><option value="motor">Motor</option><option value="motor-tubular">Motor Tubular</option></select></div><div class="fg"><label>Control Side</label><select id="awlr"><option value="R">Right</option><option value="L">Left</option></select></div></div>
+    <div class="fr2"><div class="fg"><label>Blind Type</label><select id="awbt" onchange="lc()"><option value="Zebra">Zebra</option><option value="Roller">Roller</option><option value="Double Roller">Double Roller</option></select></div><div class="fg"><label>Fabric</label><select id="awfab" onchange="lc()"><option value="">— Select fabric —</option>${_fabs.map(f=>`<option value="${f.id}" data-c="${f.catalogue_no}" data-s="${f.slat_size||0}">${f.catalogue_no} — ${f.alias} (${fn(f.remaining,1)}m available)</option>`).join('')}</select></div><div class="fg"><label>Profile (Material Type)</label><select id="awpr" onchange="lc()"><option value="">— Select profile —</option>${_profs.map(p=>`<option value="${p.code}">${p.code} — ${p.description||''}</option>`).join('')}</select></div><div class="fg"><label>Cassette Colour</label><select id="awcas" onchange="lc()"><option value="White">White</option><option value="Black">Black</option><option value="Grey">Grey</option><option value="Silver">Silver</option><option value="Mill">Mill (no cassette)</option></select></div><div class="fg"><label>Mount</label><select id="awmt" onchange="lc()"><option value="in">Inside (IB)</option><option value="out">Outside (OB)</option></select></div><div class="fg"><label>Control</label><select id="awct" onchange="lc()"><option value="chain">Chain</option><option value="wand">Wand</option><option value="motor">Motor</option><option value="motor-tubular">Motor Tubular</option><option value="cordless">Cordless</option></select></div><div class="fg"><label>Control Side</label><select id="awlr"><option value="R">Right</option><option value="L">Left</option></select></div></div>
     <div class="fss">Calculated Cuts (live preview)</div>
     <div id="cprev" style="color:var(--text3);font-size:13px;padding:12px 0">Fill in width, length and profile to calculate cuts.</div>
   </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="addWin(${jid})">Save Window</button></div></div>`);
@@ -616,7 +673,7 @@ function lc(){
   const slat=parseFloat(fabSel?.dataset.s||3)||3;
   const bt=($('awbt')?.value||'Zebra').toLowerCase();
   if(!w||!h||!pr){$('cprev').innerHTML='<span style="color:var(--text3);font-size:13px">Fill in width, length and profile to calculate cuts.</span>';return;}
-  const p=PDATA[pr];if(!p)return;
+  const p=pDed(pr);if(!p)return;
   const tw=w+wf,th=h+hf;
   const px=fc?fc[0].toUpperCase():'';
   const cc=(tw+p.c).toFixed(3),cr=(tw+p.r).toFixed(3),cbr=(tw+p.br).toFixed(3);
@@ -624,7 +681,7 @@ function lc(){
   const cbc=(p.bc&&(px==='Z'||px==='S'))?(tw+p.bc).toFixed(3):'N/A';
   const fw=(parseFloat(cbr)-0.0625).toFixed(3);
   const fd2=(bt==='zebra'?(th+slat/2-0.625):(th+6)).toFixed(3);const fm=((px==='Z'||px==='S')?parseFloat(fd2)*.0254*2:parseFloat(fd2)*.0254).toFixed(3);
-  let cord='L';if(ct.startsWith('m'))cord='None';else if(th<30)cord='S';else if(th<45)cord='M';
+  let cord='L';if(ct.startsWith('m')||ct==='cordless')cord='None';else if(th<30)cord='S';else if(th<45)cord='M';
   const brk=tw>59?3:2;
   $('cprev').innerHTML=`
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
@@ -963,7 +1020,7 @@ async function rQuoteBuilder(editId){
     _qb.items=(q.items||[]).map(it=>({location:it.location||'',blind_type:it.blind_type||'Zebra',profile_code:it.profile_code||'',fabric_code:it.fabric_code||it.fabric_id||'',fabric_code_2:it.fabric_code_2||'',hc_custom:it.hc_custom||'',cassette_colour:it.cassette_colour||'',width_in:it.width_in||0,width_frac:it.width_frac||0,length_in:it.length_in||0,length_frac:it.length_frac||0,control_type:it.control_type||'chain',lr_side:it.lr_side||'R',control_type_2:it.control_type_2||'chain',lr_side_2:it.lr_side_2||'L',mount_type:it.mount_type||'in',qty:it.qty||1,unit_price:it.unit_price||0,discount_pct:it.discount_pct||0}));
     _qb.editing=editId;
   }else{
-    _qb.items=[{location:'',blind_type:'Zebra',profile_code:'',fabric_code:'',fabric_code_2:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',control_type_2:'chain',lr_side_2:'L',mount_type:'in',qty:1,unit_price:0,discount_pct:0}];
+    _qb.items=[{location:'',blind_type:'Zebra',profile_code:'',fabric_code:'',fabric_code_2:'',hc_custom:'',cassette_colour:'White',width_in:'',width_frac:0,length_in:'',length_frac:0,control_type:'chain',lr_side:'R',control_type_2:'chain',lr_side_2:'L',mount_type:'in',qty:1,unit_price:0,discount_pct:0}];
     _qb.editing=null;
   }
   _qb.dirty=false;
@@ -1081,7 +1138,7 @@ function qbRenderRows(){
     const ld=lt*((r.discount_pct||0)/100);
     const lineTotal=lt-ld;
     const si='padding:3px 4px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--card);color:var(--text)';
-    const ctrlSel=(key,val)=>`<select onchange="qbU(${i},'${key}',this.value)" style="${si}">${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Mtr.Tub']].map(([v,l])=>`<option value="${v}" ${val===v?'selected':''}>${l}</option>`).join('')}</select>`;
+    const ctrlSel=(key,val)=>`<select onchange="qbU(${i},'${key}',this.value)" style="${si}">${[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Mtr.Tub'],['cordless','Cordless']].map(([v,l])=>`<option value="${v}" ${val===v?'selected':''}>${l}</option>`).join('')}</select>`;
     const lrSel=(key,val)=>`<select onchange="qbU(${i},'${key}',this.value)" style="${si};width:44px"><option value="R" ${val==='R'?'selected':''}>R</option><option value="L" ${val==='L'?'selected':''}>L</option></select>`;
     const ctrlCell=r.blind_type==='Double Roller'
       ?`<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:9px;color:var(--text3);font-weight:700">F</span>${ctrlSel('control_type',r.control_type)}<span style="font-size:9px;color:var(--text3);font-weight:700">B</span>${ctrlSel('control_type_2',r.control_type_2)}</div>`
@@ -1094,14 +1151,14 @@ function qbRenderRows(){
       <td><input value="${r.location||''}" onchange="qbU(${i},'location',this.value)" list="loc-list" placeholder="Room..." style="width:110px;${si}"/></td>
       <td><select onchange="qbU(${i},'blind_type',this.value)" style="${si}">${BLIND_TYPES.map(t=>`<option ${r.blind_type===t?'selected':''}>${t}</option>`).join('')}</select></td>
       <td>${qbFabricCell(i,r)}</td>
-      <td><select onchange="qbU(${i},'profile_code',this.value)" style="${si}"><option value="">—</option>${_profs.map(p=>`<option value="${p.code}" ${r.profile_code===p.code?'selected':''}>${p.code}</option>`).join('')}</select></td>
+      <td><select onchange="qbU(${i},'profile_code',this.value)" style="${si}"><option value="">—</option>${_profs.map(p=>`<option value="${p.code}" ${r.profile_code===p.code?'selected':''}>${p.code} — ${p.description||''}</option>`).join('')}</select></td>
       <td><select onchange="qbU(${i},'cassette_colour',this.value)" style="${si}">${['White','Black','Grey','Silver','Mill'].map(c=>`<option ${r.cassette_colour===c?'selected':''}>${c}</option>`).join('')}</select></td>
       <td style="white-space:nowrap">
-        <input type="number" value="${r.width_in}" onchange="qbU(${i},'width_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:38px;text-align:center;${si}"/>
+        <input type="number" class="nospin" value="${r.width_in||''}" placeholder="—" onchange="qbU(${i},'width_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:38px;text-align:center;${si}"/>
         <select onchange="qbU(${i},'width_frac',parseFloat(this.value)||0);qbCalcTotals()" style="width:50px;${si}">${fo.replace(`value="${r.width_frac}"`,`value="${r.width_frac}" selected`)}</select>
       </td>
       <td style="white-space:nowrap">
-        <input type="number" value="${r.length_in}" onchange="qbU(${i},'length_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:38px;text-align:center;${si}"/>
+        <input type="number" class="nospin" value="${r.length_in||''}" placeholder="—" onchange="qbU(${i},'length_in',parseFloat(this.value)||0);qbCalcTotals()" style="width:38px;text-align:center;${si}"/>
         <select onchange="qbU(${i},'length_frac',parseFloat(this.value)||0);qbCalcTotals()" style="width:50px;${si}">${fo.replace(`value="${r.length_frac}"`,`value="${r.length_frac}" selected`)}</select>
       </td>
       <td>${ctrlCell}</td>
@@ -1133,7 +1190,7 @@ function qbFabricCardCell(i,r){
 function qbRenderCards(){
   const el=$('qb_cards');if(!el)return;
   const fo=FRACS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
-  const ctrlOpts=(sel)=>[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.']].map(([v,l])=>`<option value="${v}" ${sel===v?'selected':''}>${l}</option>`).join('');
+  const ctrlOpts=(sel)=>[['chain','Chain'],['wand','Wand'],['motor','Motor'],['motor-tubular','Motor Tub.'],['cordless','Cordless']].map(([v,l])=>`<option value="${v}" ${sel===v?'selected':''}>${l}</option>`).join('');
   const lrOpts=(sel)=>`<option value="R" ${sel==='R'?'selected':''}>Right</option><option value="L" ${sel==='L'?'selected':''}>Left</option>`;
   el.innerHTML=_qb.items.map((r,i)=>{
     const lt=(r.unit_price||0)*(r.qty||1);
@@ -1177,13 +1234,13 @@ function qbRenderCards(){
       <div class="qbc-row">
         <div class="qbc-field"><label>Width</label>
           <div style="display:flex;gap:4px">
-            <input type="number" value="${r.width_in}" style="width:52px" onchange="qbU(${i},'width_in',parseFloat(this.value)||0);qbCalcTotals()"/>
+            <input type="number" class="nospin" value="${r.width_in||''}" placeholder="—" style="width:52px" onchange="qbU(${i},'width_in',parseFloat(this.value)||0);qbCalcTotals()"/>
             <select style="width:62px" onchange="qbU(${i},'width_frac',parseFloat(this.value)||0);qbCalcTotals()">${fo.replace(`value="${r.width_frac}"`,`value="${r.width_frac}" selected`)}</select>
           </div>
         </div>
         <div class="qbc-field"><label>Height</label>
           <div style="display:flex;gap:4px">
-            <input type="number" value="${r.length_in}" style="width:52px" onchange="qbU(${i},'length_in',parseFloat(this.value)||0);qbCalcTotals()"/>
+            <input type="number" class="nospin" value="${r.length_in||''}" placeholder="—" style="width:52px" onchange="qbU(${i},'length_in',parseFloat(this.value)||0);qbCalcTotals()"/>
             <select style="width:62px" onchange="qbU(${i},'length_frac',parseFloat(this.value)||0);qbCalcTotals()">${fo.replace(`value="${r.length_frac}"`,`value="${r.length_frac}" selected`)}</select>
           </div>
         </div>
@@ -1234,7 +1291,7 @@ function qbU(i,key,val){
 }
 function qbAddRow(){
   _qb.dirty=true;
-  _qb.items.push({location:'',blind_type:'Zebra',profile_code:'',fabric_code:'',fabric_code_2:'',hc_custom:'',cassette_colour:'White',width_in:0,width_frac:0,length_in:0,length_frac:0,control_type:'chain',lr_side:'R',control_type_2:'chain',lr_side_2:'L',mount_type:'in',qty:1,unit_price:0,discount_pct:0});
+  _qb.items.push({location:'',blind_type:'Zebra',profile_code:'',fabric_code:'',fabric_code_2:'',hc_custom:'',cassette_colour:'White',width_in:'',width_frac:0,length_in:'',length_frac:0,control_type:'chain',lr_side:'R',control_type_2:'chain',lr_side_2:'L',mount_type:'in',qty:1,unit_price:0,discount_pct:0});
   qbRenderRows();qbCalcTotals();
 }
 function qbDupRow(i){_qb.dirty=true;_qb.items.splice(i+1,0,{..._qb.items[i]});qbRenderRows();qbCalcTotals();}
@@ -1910,7 +1967,7 @@ function showCSVReview(){
 
   const fo=FRACS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
   const fabOpts=`<option value="">—</option>`+_fabs.map(f=>`<option value="${f.id}">${f.catalogue_no} — ${f.alias}</option>`).join('');
-  const profOpts=_profs.map(p=>`<option value="${p.code}">${p.code} — ${p.blind_type} — ${p.description}</option>`).join('');
+  const profOpts=_profs.map(p=>`<option value="${p.code}">${p.code} — ${p.description||''}</option>`).join('');
 
   let html=`
   <div class="card"><div style="padding:16px 18px"><div class="fss" style="margin-top:0">Client Information</div>
@@ -2011,7 +2068,7 @@ function csvAutoProfile(i){
 }
 function csvCalcRow(i){
   const r=window._csvRows[i];
-  const pr=PDATA[r.profile_code];if(!pr)return;
+  const pr=pDed(r.profile_code);if(!pr)return;
   const tw=(r.width_in||0)+(r.width_frac||0);
   const tl=(r.length_in||0)+(r.length_frac||0);
   const cc=(tw+pr.c).toFixed(3),cr=(tw+pr.r).toFixed(3);
@@ -2028,7 +2085,7 @@ function csvCalcRow(i){
   const fd2=(effType==='zebra'?(tl+(fab?.slat_size||3)/2-0.625):(tl+6)).toFixed(3);
   const fm=((px==='Z'||px==='S')?parseFloat(fd2)*0.0254*2:parseFloat(fd2)*0.0254).toFixed(3);
   const ctrl=(r.control_type||'').toLowerCase();
-  const cord=ctrl.startsWith('m')?'None':tl<30?'S':tl<45?'M':'L';
+  const cord=(ctrl.startsWith('m')||ctrl==='cordless')?'None':tl<30?'S':tl<45?'M':'L';
   const brk=tw>59?3:2;
   // Update cells
   const el=id=>document.getElementById(id);
