@@ -389,7 +389,7 @@ app.post('/api/jobs/import', requireAuth, async (req, res) => {
 
 app.get('/api/quotes', requireAuth, ownerAdminSales, async (req, res) => {
   const { role, id } = req.user;
-  let q = supabase.from('quotes_view').select('*');
+  let q = supabase.from('quotes_view').select('*').is('deleted_at', null);
   if (role === 'sales') q = q.eq('created_by', id);
   // Fetch quotes + all items in parallel (2 queries instead of N+1)
   const [{ data: rows }, { data: allItems }] = await Promise.all([
@@ -399,6 +399,34 @@ app.get('/api/quotes', requireAuth, ownerAdminSales, async (req, res) => {
   const itemsByQuote = {};
   (allItems||[]).forEach(i => { if(!itemsByQuote[i.quote_id]) itemsByQuote[i.quote_id]=[]; itemsByQuote[i.quote_id].push(i); });
   res.json((rows||[]).map(row => ({ ...row, items: itemsByQuote[row.id]||[] })));
+});
+// ─── QUOTE TRASH (soft delete; auto-purged after 90 days by pg_cron) ───
+// NOTE: /trash must be declared before /:id so it isn't captured as an id.
+app.get('/api/quotes/trash', requireAuth, ownerAdminSales, async (req, res) => {
+  const { role, id } = req.user;
+  let q = supabase.from('quotes_view').select('*').not('deleted_at', 'is', null);
+  if (role === 'sales') q = q.eq('created_by', id);
+  const { data } = await q.order('deleted_at', { ascending: false });
+  const now = Date.now();
+  res.json((data||[]).map(r => {
+    const purgeAt = new Date(r.deleted_at).getTime() + 90*864e5;
+    return { ...r, days_left: Math.max(0, Math.ceil((purgeAt - now)/864e5)) };
+  }));
+});
+app.delete('/api/quotes/:id', requireAuth, ownerAdminSales, async (req, res) => {
+  const { error } = await supabase.from('quotes').update({ deleted_at: new Date().toISOString() }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+app.post('/api/quotes/:id/restore', requireAuth, ownerAdminSales, async (req, res) => {
+  const { error } = await supabase.from('quotes').update({ deleted_at: null }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+app.delete('/api/quotes/:id/purge', requireAuth, ownerAdmin, async (req, res) => {
+  const { error } = await supabase.from('quotes').delete().eq('id', req.params.id); // quote_items cascade
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
 });
 app.get('/api/quotes/:id', requireAuth, ownerAdminSales, async (req, res) => {
   const { data: q } = await supabase.from('quotes_view').select('*').eq('id', req.params.id).single();

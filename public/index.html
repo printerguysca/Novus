@@ -446,6 +446,19 @@ function lp(loc){const c=LC[loc]||'#64748b';return`<span class="lp" style="backg
 function emp(t,s=''){return`<tr><td colspan="99"><div class="empty"><div class="et">${t}</div><div class="esb">${s}</div></div></td></tr>`;}
 function openModal(h){$('modal-root').innerHTML=`<div class="mo" id="mo">${h}</div>`;$('mo').addEventListener('click',e=>{if(e.target.id==='mo')closeModal();});}
 function closeModal(){$('modal-root').innerHTML='';}
+// Non-blocking confirm (replaces native confirm() which freezes the main thread → bad INP)
+function confirmDialog(message,opts={}){
+  return new Promise(resolve=>{
+    const danger=opts.danger!==false;
+    const ok=opts.okLabel||'Confirm';
+    const wrap=document.createElement('div');wrap.className='mo';
+    wrap.innerHTML=`<div class="md msm"><div class="mh"><h3>${opts.title||'Please confirm'}</h3></div><div class="mb"><div style="font-size:13px;color:var(--text2);white-space:pre-line;line-height:1.6">${message}</div></div><div class="mf"><button class="btn bsec" data-a="0">Cancel</button><button class="btn ${danger?'bd':'bp'}" data-a="1">${ok}</button></div></div>`;
+    const close=v=>{document.removeEventListener('keydown',onKey);wrap.remove();resolve(v);};
+    const onKey=e=>{if(e.key==='Escape')close(false);else if(e.key==='Enter')close(true);};
+    wrap.addEventListener('click',e=>{if(e.target===wrap)return close(false);const b=e.target.closest('[data-a]');if(b)close(b.dataset.a==='1');});
+    document.addEventListener('keydown',onKey);document.body.appendChild(wrap);
+  });
+}
 // ── PAGE CACHE (stale-while-revalidate, 45s TTL) ──
 const _pc={};
 function pcGet(k){const c=_pc[k];return c&&Date.now()-c.t<45000?c.d:null;}
@@ -518,7 +531,7 @@ function _renderJobs(jobs){
   $('content').innerHTML=`<div class="tabs" id="jf">${['all','new','measured','in_production','ready','installed'].map(s=>`<button class="tab ${s==='all'?'active':''}" data-s="${s}" onclick="setJF('${s}')">${s==='all'?'All Jobs':s.replace('_',' ')}</button>`).join('')}</div><div class="card"><div class="ch"><h2 style="margin:0">Jobs</h2><input id="js_s" placeholder="Search job #, client, rep…" oninput="window._jRender()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;width:220px"/></div><div class="tw"><table><thead><tr><th>Job #</th><th>Client</th><th>Rep</th><th>Date In</th><th>Due</th><th>Windows</th><th>Status</th><th>Actions</th></tr></thead><tbody id="jt"></tbody></table></div></div>`;
   window._jRender('all');
   window.setJF=f=>{document.querySelectorAll('#jf .tab').forEach(b=>b.classList.toggle('active',b.dataset.s===f));window._jRender(f);};
-  window.dJob=async id=>{if(!confirm('Delete this job?'))return;await del('/api/jobs/'+id);toast('Job deleted');pcInvalidate('jobs');rJobs();};
+  window.dJob=async id=>{if(!await confirmDialog('Delete this job?'))return;await del('/api/jobs/'+id);toast('Job deleted');pcInvalidate('jobs');rJobs();};
 }
 async function rJobs(){
   const cached=pcGet('jobs');if(cached)_renderJobs(cached);
@@ -560,7 +573,7 @@ function renderWT(wins,cc,ce){
   $('wt').innerHTML=wins.length?wins.map(w=>`<tr><td class="muted">${w.window_no}</td><td><strong>${w.location||'—'}</strong></td><td><div style="display:flex;align-items:center;gap:7px"><div style="width:13px;height:13px;border-radius:3px;background:${w.colour_hex||'#ccc'};border:1px solid var(--border);flex-shrink:0"></div><div><div style="font-weight:600;font-size:12px">${w.fabric_alias||'—'}</div><span class="mono" style="font-size:10px">${w.catalogue_no||''}</span></div></div></td><td><span class="badge bpu">Profile ${w.profile_code||'—'}</span></td><td class="mono">${ms(w.width_in,w.width_frac)}</td><td class="mono">${ms(w.length_in,w.length_frac)}</td><td>${w.mount_type==='in'||w.mount_type==='I'?'<span class="badge btl">Inside</span>':'<span class="badge bam">Outside</span>'}</td><td class="muted">${w.control_type||'—'} ${w.lr_side||''}</td>${cc?`<td class="mono"><strong>${toFrac(w.cut_cassette)}</strong></td><td class="mono"><strong>${toFrac(w.cut_bottom_rail)}</strong></td><td class="mono" style="color:var(--green-text)"><strong>${toFrac(w.cut_fabric_width)}</strong></td><td class="mono" style="color:var(--green-text)"><strong>${toFrac(w.cut_fabric_drop)}</strong></td>`:''}<td>${prodBadge(w.production_status||'pending')}</td><td class="muted">${w.cord_wand_size||'—'}</td><td class="muted">${w.bracket_count||0}×</td><td>${ce?`<button class="btn bg bxs" style="color:var(--red)" onclick="dWin(${w.id})">Remove</button>`:''}</td></tr>`).join(''):emp('No windows added','Click "Add Window" to begin measuring');
 }
 async function updJS(id,s){await patch('/api/jobs/'+id,{status:s});toast('Status updated');}
-async function dWin(id){if(!confirm('Remove window?'))return;await del('/api/windows/'+id);toast('Window removed');rJobDetail(_cJob.id);}
+async function dWin(id){if(!await confirmDialog('Remove window?'))return;await del('/api/windows/'+id);toast('Window removed');rJobDetail(_cJob.id);}
 async function mAddWin(jid){
   const fo=FRACS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
   openModal(`<div class="md mlg"><div class="mh"><h3>Add Window</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
@@ -865,7 +878,7 @@ async function qbSaveNewClient(){
 }
 // ── QUOTES ──
 function _renderQuotes(quotes){
-  $('tactions').innerHTML=`<button class="btn bp bsm" onclick="nav('quote-edit')">New Quote</button>`;
+  $('tactions').innerHTML=`<button class="btn bsec bsm" onclick="rQuotesTrash()">Trash</button><button class="btn bp bsm" onclick="nav('quote-edit')">New Quote</button>`;
   function render(sq,sf){
     const list=quotes.filter(q=>{
       const matchS=!sq||[q.quote_number,q.client_name,q.rep_name].join(' ').toLowerCase().includes(sq.toLowerCase());
@@ -874,7 +887,7 @@ function _renderQuotes(quotes){
     });
     $('qt_tbody').innerHTML=list.length?list.map(q=>{
       const paid=q.amount_paid||0;const bal=q.total-paid;
-      return`<tr style="cursor:pointer" onclick="nav('quote-edit',${q.id})"><td><strong style="color:var(--accent)">${q.quote_number}</strong></td><td><strong>${q.client_name||'—'}</strong></td><td class="muted">${q.rep_name||'—'}</td><td class="muted">${q.items?.length||0}</td><td class="mono">$${fn(q.subtotal,2)}</td><td class="mono"><strong>$${fn(q.total,2)}</strong></td><td class="mono" style="color:${bal>0?'var(--amber)':'var(--green)'}">${paid>0?'$'+fn(paid,2):'—'}</td><td>${qb(q.status)}</td><td class="muted">${fd(q.created_at)}</td><td style="display:flex;gap:4px" onclick="event.stopPropagation()"><button class="btn bsec bxs" onclick="nav('quote-edit',${q.id})">Edit</button>${can('owner','admin')&&q.status==='accepted'?`<button class="btn bs bxs" onclick="cvtQ(${q.id})">→ Job</button>`:''} ${can('owner','admin')&&q.status==='draft'?`<button class="btn bsec bxs" onclick="uQ(${q.id},'sent')">Sent</button>`:''} ${q.status==='sent'?`<button class="btn bs bxs" onclick="uQ(${q.id},'accepted')">Accept</button>`:''}<button class="btn bg bxs" onclick="downloadPDF(${q.id},'quote')">PDF</button></td></tr>`;
+      return`<tr style="cursor:pointer" onclick="nav('quote-edit',${q.id})"><td><strong style="color:var(--accent)">${q.quote_number}</strong></td><td><strong>${q.client_name||'—'}</strong></td><td class="muted">${q.rep_name||'—'}</td><td class="muted">${q.items?.length||0}</td><td class="mono">$${fn(q.subtotal,2)}</td><td class="mono"><strong>$${fn(q.total,2)}</strong></td><td class="mono" style="color:${bal>0?'var(--amber)':'var(--green)'}">${paid>0?'$'+fn(paid,2):'—'}</td><td>${qb(q.status)}</td><td class="muted">${fd(q.created_at)}</td><td style="display:flex;gap:4px" onclick="event.stopPropagation()"><button class="btn bsec bxs" onclick="nav('quote-edit',${q.id})">Edit</button>${can('owner','admin')&&q.status==='accepted'?`<button class="btn bs bxs" onclick="cvtQ(${q.id})">→ Job</button>`:''} ${can('owner','admin')&&q.status==='draft'?`<button class="btn bsec bxs" onclick="uQ(${q.id},'sent')">Sent</button>`:''} ${q.status==='sent'?`<button class="btn bs bxs" onclick="uQ(${q.id},'accepted')">Accept</button>`:''}<button class="btn bg bxs" onclick="downloadPDF(${q.id},'quote')">PDF</button>${can('owner','admin','sales')?`<button class="btn bg bxs" style="color:var(--red)" onclick="delQ(${q.id})">Delete</button>`:''}</td></tr>`;
     }).join(''):emp('No quotes match','Try a different search or filter');
   }
   $('content').innerHTML=`<div class="card"><div class="ch"><h2>Quotes (${quotes.length})</h2><div style="display:flex;gap:8px;align-items:center"><input id="qt_s" placeholder="Search by quote #, client, rep…" oninput="window._qtRender()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;width:240px"/><select id="qt_f" onchange="window._qtRender()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px"><option value="all">All Statuses</option><option value="draft">Draft</option><option value="sent">Sent</option><option value="accepted">Accepted</option><option value="converted">Converted</option></select></div></div><div class="tw"><table><thead><tr><th>Quote #</th><th>Client</th><th>Rep</th><th>Items</th><th>MSRP</th><th>Total</th><th>Paid</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody id="qt_tbody"></tbody></table></div></div>`;
@@ -888,6 +901,14 @@ async function rQuotes(){
 }
 async function uQ(id,s){await patch('/api/quotes/'+id,{status:s});toast('Quote updated');pcInvalidate('quotes');rQuotes();}
 async function cvtQ(id){const r=await post('/api/quotes/'+id+'/convert');toast('Converted to job '+r.job_number);pcInvalidate('quotes');pcInvalidate('jobs');nav('job-detail',r.job_id);}
+async function delQ(id){if(!await confirmDialog('Move this quote to Trash?\n\nIt will be kept for 90 days and then permanently deleted automatically. You can restore it before then.',{danger:false,okLabel:'Move to Trash'}))return;await del('/api/quotes/'+id);toast('Quote moved to Trash');pcInvalidate('quotes');rQuotes();}
+async function restoreQ(id){await post('/api/quotes/'+id+'/restore');toast('Quote restored');pcInvalidate('quotes');rQuotesTrash();}
+async function purgeQ(id){if(!await confirmDialog('Permanently delete this quote now?\n\nThis cannot be undone.',{okLabel:'Delete forever'}))return;await del('/api/quotes/'+id+'/purge');toast('Quote permanently deleted');rQuotesTrash();}
+async function rQuotesTrash(){
+  const trash=await get('/api/quotes/trash');
+  $('tactions').innerHTML=`<button class="btn bp bsm" onclick="rQuotes()">← Back to Quotes</button>`;
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Trash (${trash.length})</h2><span class="muted" style="font-size:12px">Quotes stay here 90 days, then delete automatically</span></div><div class="tw"><table><thead><tr><th>Quote #</th><th>Client</th><th>Total</th><th>Status</th><th>Deleted</th><th>Auto-deletes in</th><th>Actions</th></tr></thead><tbody>${trash.length?trash.map(q=>`<tr><td><strong>${q.quote_number}</strong></td><td>${q.client_name||'—'}</td><td class="mono">$${fn(q.total,2)}</td><td>${qb(q.status)}</td><td class="muted">${fd(q.deleted_at)}</td><td><span class="badge ${q.days_left<=7?'brd':q.days_left<=30?'bam':'bgy'}">${q.days_left} day${q.days_left===1?'':'s'}</span></td><td style="display:flex;gap:4px"><button class="btn bsec bxs" onclick="restoreQ(${q.id})">Restore</button>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="purgeQ(${q.id})">Delete Forever</button>`:''}</td></tr>`).join(''):emp('Trash is empty','Deleted quotes appear here for 90 days')}</tbody></table></div></div>`;
+}
 
 // ── QUOTE BUILDER (full page) ──
 let _qb={items:[],editing:null,dirty:false};
@@ -1366,7 +1387,7 @@ async function syncCatalog(){
   const existing=new Set(_fabs.map(f=>f.catalogue_no));
   const missing=FABRIC_CAT.filter(f=>!existing.has(f.code));
   if(!missing.length){toast('All catalog items already in inventory');return;}
-  if(!confirm(`Add ${missing.length} missing catalog items to inventory?`))return;
+  if(!await confirmDialog(`Add ${missing.length} missing catalog items to inventory?`,{danger:false,okLabel:'Add'}))return;
   let added=0;
   for(const f of missing){
     try{
@@ -1469,7 +1490,7 @@ async function rTransfers(){
   <div class="card"><div class="ch"><h2>All Transfers</h2></div><div class="tw"><table><thead><tr><th>Transfer #</th><th>Route</th><th>Items</th><th>Job</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>${ts.length?ts.map(t=>`<tr><td><strong>${t.transfer_no}</strong></td><td><div style="display:flex;align-items:center;gap:6px">${lp(t.from_location)}<span class="muted">→</span>${lp(t.to_location)}</div></td><td style="font-size:12px;color:var(--text2)">${(t.items||[]).map(i=>`${i.item_name} ×${i.qty}`).join(', ')}</td><td>${t.job_number?`<span class="badge bbl">${t.job_number}</span>`:'—'}</td><td class="muted">${fd(t.created_at)}</td><td>${t.status==='completed'?`<span class="badge bgr">Delivered</span>`:`<span class="badge bam">Pending</span>`}</td><td style="display:flex;gap:4px">${t.status==='pending'?`<button class="btn bs bxs" onclick="cTrf(${t.id})">Deliver</button>`:''}<button class="btn bg bxs" style="color:var(--red)" onclick="dTrf(${t.id})">Delete</button></td></tr>`).join(''):emp('No transfers yet','Move stock between Warehouse, Factory and Installer')}</tbody></table></div></div>`;
 }
 async function cTrf(id){await api('PATCH','/api/transfers/'+id+'/complete');toast('Transfer marked delivered');rTransfers();}
-async function dTrf(id){if(!confirm('Delete transfer?'))return;await del('/api/transfers/'+id);toast('Deleted');rTransfers();}
+async function dTrf(id){if(!await confirmDialog('Delete transfer?'))return;await del('/api/transfers/'+id);toast('Deleted');rTransfers();}
 async function mNewTrf(){
   if(!_fabs.length)_fabs=await get('/api/fabrics');if(!_hw.length)_hw=await get('/api/hardware');
   const jobs=await get('/api/jobs');let items=[];
@@ -1520,7 +1541,7 @@ async function rTasks(){
   render('all');
   window.setTF=f=>{document.querySelectorAll('#tftabs .tab').forEach(b=>b.classList.toggle('active',b.dataset.s===f));render(f);};
   window.utask=async(id,s)=>{await patch('/api/tasks/'+id,{status:s});toast('Task updated');rTasks();};
-  window.dtask=async id=>{if(!confirm('Delete task?'))return;await del('/api/tasks/'+id);toast('Deleted');rTasks();};
+  window.dtask=async id=>{if(!await confirmDialog('Delete task?'))return;await del('/api/tasks/'+id);toast('Deleted');rTasks();};
 }
 async function mNewTask(){
   if(!_users.length&&can('owner','admin'))_users=await get('/api/users');
@@ -1557,7 +1578,7 @@ async function loadCal(){
   $('content').innerHTML=`<div class="cg" style="margin-bottom:2px">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cdh">${d}</div>`).join('')}</div><div class="cg">${cells}</div>${events.length?`<div class="card" style="margin-top:16px"><div class="ch"><h2>Events This Month</h2></div><div class="tw"><table><thead><tr><th>Date</th><th>Event</th><th>Type</th><th>Assigned</th><th>Job</th><th></th></tr></thead><tbody>${events.map(e=>`<tr><td class="muted">${fd(e.start_date)}</td><td><strong>${e.title}</strong>${e.notes?`<br><span style="font-size:11px;color:var(--text3)">${e.notes}</span>`:''}</td><td><span class="badge ${e.event_type==='install'?'bgr':e.event_type==='measure'?'bbl':e.event_type==='meeting'?'bpu':'bgy'}">${{install:'Install',measure:'Measure',meeting:'Meeting',other:'Other'}[e.event_type]||e.event_type}</span></td><td class="muted">${e.assigned_name||'—'}</td><td>${e.job_number?`<span class="badge bbl">${e.job_number}</span>`:'—'}</td><td>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="dEv(${e.id})">Delete</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`:''}`;
 }
 function calNav(d){calM+=d;if(calM>12){calM=1;calY++;}else if(calM<1){calM=12;calY--;}loadCal();}
-async function dEv(id){if(!confirm('Delete event?'))return;await del('/api/calendar/'+id);toast('Deleted');loadCal();}
+async function dEv(id){if(!await confirmDialog('Delete event?'))return;await del('/api/calendar/'+id);toast('Deleted');loadCal();}
 async function mNewEvent(){
   if(!_users.length&&can('owner','admin'))_users=await get('/api/users');
   const jobs=await get('/api/jobs');
@@ -1591,7 +1612,7 @@ function mEditUser(id){
   </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svEditUser(${id})">Save Changes</button></div></div>`);
   window.svEditUser=async id=>{const d={name:$('eun').value,email:$('eue').value,role:$('eur').value};if($('eup').value)d.password=$('eup').value;await patch('/api/users/'+id,d);closeModal();toast('User updated');rUsers();};
 }
-async function disUser(id,name){if(!confirm(`Disable ${name}? They will not be able to log in.`))return;await del('/api/users/'+id);toast(name+' disabled');rUsers();}
+async function disUser(id,name){if(!await confirmDialog(`Disable ${name}? They will not be able to log in.`))return;await del('/api/users/'+id);toast(name+' disabled');rUsers();}
 
 // ── REPORTS ──
 async function rReports(){

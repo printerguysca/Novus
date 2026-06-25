@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Novus — Redesign Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Brand */
+  --brand:#0f172a; --brand-2:#1e293b; --brand-3:#334155;
+  --accent:#ea580c; --accent-h:#c2410c; --accent-soft:#fff3ec; --accent-ring:rgba(234,88,12,.12);
+  /* Neutrals */
+  --bg:#f6f8fa; --surface:#ffffff; --surface-2:#f8fafc;
+  --text:#0f172a; --text-2:#475569; --text-3:#8a97a8;
+  --line:#e7ecf1; --line-2:#dbe2ea;
+  /* Status */
+  --green:#16a34a; --green-bg:#edfdf3; --green-tx:#15803d;
+  --blue:#2563eb;  --blue-bg:#eef4ff;  --blue-tx:#1d4ed8;
+  --amber:#d97706; --amber-bg:#fff8eb; --amber-tx:#b45309;
+  --purple:#7c3aed;--purple-bg:#f5f1ff;--purple-tx:#6d28d9;
+  --slate-bg:#eef2f6;--slate-tx:#475569;
+  /* System */
+  --r:8px; --r-lg:12px; --r-xl:16px;
+  --sh-sm:0 1px 2px rgba(15,23,42,.05);
+  --sh:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+  --sh-lg:0 12px 28px rgba(15,23,42,.10),0 4px 10px rgba(15,23,42,.05);
+  --sw:248px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+.app{display:flex;min-height:100vh;}
+
+/* ---------- Sidebar ---------- */
+.sidebar{width:var(--sw);min-width:var(--sw);background:var(--brand);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+.logo{padding:20px 20px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.07);}
+.logo .mark{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#ea580c,#c2410c);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(234,88,12,.35);}
+.logo .mark svg{width:20px;height:20px;}
+.logo .nm{color:#fff;font-size:17px;font-weight:700;letter-spacing:-.2px;}
+.logo .sb{color:rgba(255,255,255,.4);font-size:11px;margin-top:1px;}
+.nav{flex:1;padding:14px 12px;overflow-y:auto;}
+.nav .grp{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:rgba(255,255,255,.34);padding:16px 12px 7px;}
+.nav a{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;color:rgba(255,255,255,.62);font-size:13.5px;font-weight:500;text-decoration:none;margin-bottom:2px;position:relative;transition:.15s;}
+.nav a svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;opacity:.85;flex-shrink:0;}
+.nav a:hover{background:rgba(255,255,255,.06);color:#fff;}
+.nav a.active{background:rgba(234,88,12,.14);color:#fb7a3c;font-weight:600;}
+.nav a.active::before{content:'';position:absolute;left:-12px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--accent);}
+.nav a.active svg{opacity:1;color:#fb7a3c;}
+.sfoot{padding:14px 16px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:11px;}
+.av{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#ea580c,#c2410c);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sfoot .nm{color:#fff;font-size:13px;font-weight:600;}
+.sfoot .rl{color:rgba(255,255,255,.4);font-size:11px;text-transform:capitalize;}
+.sfoot .out{margin-left:auto;color:rgba(255,255,255,.4);background:transparent;border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:5px 9px;font-size:11px;cursor:pointer;}
+.sfoot .out:hover{color:#fff;border-color:rgba(255,255,255,.3);}
+
+/* ---------- Main ---------- */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{height:62px;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:10;}
+.topbar h1{font-size:18px;font-weight:700;letter-spacing:-.3px;}
+.topbar .crumb{font-size:12px;color:var(--text-3);font-weight:500;margin-bottom:1px;}
+.tb-actions{display:flex;align-items:center;gap:10px;}
+.content{padding:26px 28px;flex:1;}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 16px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid transparent;transition:.15s;white-space:nowrap;}
+.btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
+.btn-pri{background:var(--accent);color:#fff;box-shadow:0 1px 2px rgba(234,88,12,.3);}
+.btn-pri:hover{background:var(--accent-h);}
+.btn-sec{background:var(--surface);color:var(--text);border-color:var(--line-2);}
+.btn-sec:hover{border-color:var(--accent);color:var(--accent);}
+.btn-ghost{background:transparent;color:var(--text-2);}
+.btn-ghost:hover{background:var(--accent-soft);color:var(--accent);}
+.btn-sm{height:32px;padding:0 12px;font-size:12px;}
+.btn-icon{width:38px;height:38px;padding:0;justify-content:center;}
+
+/* ---------- Stat cards ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px;}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--sh-sm);transition:.15s;}
+.stat:hover{box-shadow:var(--sh);border-color:var(--line-2);transform:translateY(-1px);}
+.stat .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.stat .lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);}
+.stat .ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;}
+.stat .ic svg{width:17px;height:17px;stroke-width:2;fill:none;}
+.stat .val{font-size:30px;font-weight:800;letter-spacing:-1px;line-height:1;}
+.stat .sub{font-size:12px;color:var(--text-3);margin-top:7px;font-weight:500;}
+.stat .sub b{color:var(--green-tx);font-weight:600;}
+.ic-o{background:var(--accent-soft);color:var(--accent);}
+.ic-b{background:var(--blue-bg);color:var(--blue);}
+.ic-g{background:var(--green-bg);color:var(--green);}
+.ic-p{background:var(--purple-bg);color:var(--purple);}
+
+/* ---------- Card ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-sm);margin-bottom:22px;overflow:hidden;}
+.card-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.card-h h2{font-size:15px;font-weight:700;letter-spacing:-.2px;}
+.card-h .meta{font-size:12px;color:var(--text-3);font-weight:500;}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex;gap:4px;padding:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;margin-bottom:18px;width:fit-content;}
+.tabs button{padding:7px 15px;border:none;background:transparent;font-family:inherit;font-size:13px;font-weight:600;color:var(--text-2);border-radius:7px;cursor:pointer;transition:.15s;}
+.tabs button.active{background:var(--surface);color:var(--accent);box-shadow:var(--sh-sm);}
+.tabs button:hover:not(.active){color:var(--text);}
+
+/* ---------- Table ---------- */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{text-align:left;padding:12px 18px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);background:var(--surface-2);border-bottom:1px solid var(--line);white-space:nowrap;}
+.tbl td{padding:14px 18px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle;}
+.tbl tbody tr{transition:.12s;}
+.tbl tbody tr:hover{background:var(--surface-2);}
+.tbl tbody tr:last-child td{border-bottom:none;}
+.tbl .jn{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
+.tbl .mut{color:var(--text-2);}
+.tbl .mono{font-family:'SF Mono',ui-monospace,monospace;font-size:12.5px;font-variant-numeric:tabular-nums;}
+.cli{display:flex;align-items:center;gap:10px;}
+.cli .ci{width:30px;height:30px;border-radius:8px;background:var(--slate-bg);color:var(--slate-tx);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* ---------- Badges ---------- */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:6px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+.badge .dot{width:6px;height:6px;border-radius:50%;}
+.b-new{background:var(--slate-bg);color:var(--slate-tx);} .b-new .dot{background:#94a3b8;}
+.b-meas{background:var(--amber-bg);color:var(--amber-tx);} .b-meas .dot{background:var(--amber);}
+.b-prod{background:var(--purple-bg);color:var(--purple-tx);} .b-prod .dot{background:var(--purple);}
+.b-ready{background:var(--blue-bg);color:var(--blue-tx);} .b-ready .dot{background:var(--blue);}
+.b-done{background:var(--green-bg);color:var(--green-tx);} .b-done .dot{background:var(--green);}
+
+/* ---------- Quote builder row ---------- */
+.qb{display:flex;flex-direction:column;gap:10px;}
+.qb-row{display:grid;grid-template-columns:32px 1.6fr 1fr 90px 90px 70px 1fr 110px 40px;gap:10px;align-items:end;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+.qb-row.head{background:transparent;border:none;padding:0 14px;}
+.qb-row.head .fld-l{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text-3);}
+.fld{display:flex;flex-direction:column;gap:4px;}
+.fld label{font-size:11px;font-weight:600;color:var(--text-3);}
+.in{height:36px;padding:0 11px;border:1px solid var(--line-2);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;transition:.15s;width:100%;}
+.in:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring);}
+select.in{cursor:pointer;}
+.qb-num{font-size:12px;font-weight:700;color:var(--text-3);text-align:center;padding-bottom:9px;font-variant-numeric:tabular-nums;}
+.qb-del{width:36px;height:36px;border:1px solid var(--line-2);background:var(--surface);border-radius:7px;color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.qb-del:hover{border-color:#fca5a5;color:#dc2626;background:#fef2f2;}
+.qb-del svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;}
+.qb-total{display:flex;justify-content:flex-end;align-items:baseline;gap:12px;padding:14px 14px 2px;}
+.qb-total .t-l{font-size:13px;color:var(--text-2);font-weight:500;}
+.qb-total .t-v{font-size:24px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:-.5px;}
+
+/* ---------- Component swatch section ---------- */
+.section-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-3);margin:6px 0 14px;}
+.swatch{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px;}
+.note{background:var(--accent-soft);border:1px solid var(--accent-ring);border-radius:10px;padding:14px 18px;font-size:13px;color:var(--accent-h);margin-bottom:24px;display:flex;gap:10px;align-items:flex-start;}
+.note svg{width:18px;height:18px;stroke:var(--accent);fill:none;stroke-width:2;flex-shrink:0;margin-top:1px;}
+.cut{font-family:'SF Mono',ui-monospace,monospace;font-weight:700;font-size:12.5px;color:var(--accent-h);background:var(--accent-soft);padding:2px 7px;border-radius:5px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4h16v16H4z" stroke="#fff" stroke-width="0" fill="rgba(255,255,255,.15)"/><path d="M5 19V5h2.5l9 11V5H19v14h-2.5l-9-11v11H5z" fill="#fff"/></svg></div>
+      <div><div class="nm">Novus</div><div class="sb">Soho Blinds</div></div>
+    </div>
+    <nav class="nav">
+      <div class="grp">Overview</div>
+      <a class="active" href="#"><svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Jobs</a>
+      <div class="grp">Production</div>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>Production Queue</a>
+      <div class="grp">Office</div>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 100-8 4 4 0 000 8z"/></svg>Clients</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M8 12h8m-8 4h5M7 8h10M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>Quotes</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Calendar</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7l2 2 4-4"/></svg>Tasks</a>
+      <div class="grp">Warehouse</div>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>Fabric Stock</a>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3m0 12v3M3 12h3m12 0h3"/></svg>Hardware Stock</a>
+    </nav>
+    <div class="sfoot">
+      <div class="av">O</div>
+      <div><div class="nm">Owner Account</div><div class="rl">Owner</div></div>
+      <button class="out">Sign out</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="topbar">
+      <div><div class="crumb">Overview</div><h1>Dashboard</h1></div>
+      <div class="tb-actions">
+        <button class="btn btn-sec"><svg viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>New Quote</button>
+        <button class="btn btn-pri"><svg viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>New Job</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- Stat cards -->
+      <div class="stats">
+        <div class="stat">
+          <div class="top"><span class="lbl">Total Jobs</span><span class="ic ic-o"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg></span></div>
+          <div class="val">25</div>
+          <div class="sub"><b>+4</b> this week</div>
+        </div>
+        <div class="stat">
+          <div class="top"><span class="lbl">Quote Revenue</span><span class="ic ic-g"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2"/></svg></span></div>
+          <div class="val">$48,250</div>
+          <div class="sub">26 quotes · 5 accepted</div>
+        </div>
+        <div class="stat">
+          <div class="top"><span class="lbl">In Production</span><span class="ic ic-p"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M19 11H5a2 2 0 00-2 2v6a2 2 0 002 2h14a2 2 0 002-2v-6a2 2 0 00-2-2z"/></svg></span></div>
+          <div class="val">7</div>
+          <div class="sub">12 windows cutting</div>
+        </div>
+        <div class="stat">
+          <div class="top"><span class="lbl">Clients</span><span class="ic ic-b"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 100-8 4 4 0 000 8z"/></svg></span></div>
+          <div class="val">4</div>
+          <div class="sub">All active</div>
+        </div>
+      </div>
+
+      <!-- Recent jobs -->
+      <div class="card">
+        <div class="card-h">
+          <h2>Recent Jobs</h2>
+          <button class="btn btn-sec btn-sm">View all jobs</button>
+        </div>
+        <div class="tabs" style="margin:16px 20px 4px;">
+          <button class="active">All</button><button>New</button><button>Measured</button><button>In Production</button><button>Ready</button><button>Installed</button>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Job #</th><th>Client</th><th>Rep</th><th>Date In</th><th>Due</th><th>Windows</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="jn">SB-2026-0042</td><td><div class="cli"><span class="ci">AR</span>Aria Residence</div></td><td class="mut">M. Singh</td><td class="mut mono">Jun 18</td><td class="mut mono">Jun 30</td><td class="mono">8</td><td><span class="badge b-prod"><span class="dot"></span>In Production</span></td><td><button class="btn btn-ghost btn-sm">Open</button></td></tr>
+            <tr><td class="jn">SB-2026-0041</td><td><div class="cli"><span class="ci">KD</span>Kensington Dev</div></td><td class="mut">L. Romano</td><td class="mut mono">Jun 17</td><td class="mut mono">Jul 02</td><td class="mono">14</td><td><span class="badge b-meas"><span class="dot"></span>Measured</span></td><td><button class="btn btn-ghost btn-sm">Open</button></td></tr>
+            <tr><td class="jn">SB-2026-0040</td><td><div class="cli"><span class="ci">HW</span>Harbour West</div></td><td class="mut">M. Singh</td><td class="mut mono">Jun 15</td><td class="mut mono">Jun 28</td><td class="mono">6</td><td><span class="badge b-ready"><span class="dot"></span>Ready</span></td><td><button class="btn btn-ghost btn-sm">Open</button></td></tr>
+            <tr><td class="jn">SB-2026-0039</td><td><div class="cli"><span class="ci">TP</span>The Pinewoods</div></td><td class="mut">A. Cole</td><td class="mut mono">Jun 12</td><td class="mut mono">Jun 24</td><td class="mono">3</td><td><span class="badge b-done"><span class="dot"></span>Installed</span></td><td><button class="btn btn-ghost btn-sm">Open</button></td></tr>
+            <tr><td class="jn">SB-2026-0038</td><td><div class="cli"><span class="ci">MR</span>Maple Row</div></td><td class="mut">L. Romano</td><td class="mut mono">Jun 11</td><td class="mut mono">Jun 26</td><td class="mono">11</td><td><span class="badge b-new"><span class="dot"></span>New</span></td><td><button class="btn btn-ghost btn-sm">Open</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Quote builder preview -->
+      <div class="card">
+        <div class="card-h"><h2>Quote Builder <span class="meta">— window line items</span></h2><button class="btn btn-sec btn-sm">+ Add Window</button></div>
+        <div style="padding:18px 20px;">
+          <div class="qb">
+            <div class="qb-row head"><div></div><div class="fld-l">Location</div><div class="fld-l">Fabric</div><div class="fld-l">Width</div><div class="fld-l">Drop</div><div class="fld-l">Profile</div><div class="fld-l">Control</div><div class="fld-l">Line Total</div><div></div></div>
+            <div class="qb-row">
+              <div class="qb-num">1</div>
+              <div class="fld"><input class="in" value="Living Room Left"></div>
+              <div class="fld"><select class="in"><option>Z1A — Zebra Stone</option></select></div>
+              <div class="fld"><input class="in mono" value="48 1/2"></div>
+              <div class="fld"><input class="in mono" value="72"></div>
+              <div class="fld"><select class="in"><option>H</option></select></div>
+              <div class="fld"><select class="in"><option>Chain · L</option></select></div>
+              <div class="fld"><input class="in mono" value="$ 312.00"></div>
+              <button class="qb-del"><svg viewBox="0 0 24 24"><path d="M6 7h12M9 7V5h6v2m-1 0v12H10V7"/></svg></button>
+            </div>
+            <div class="qb-row">
+              <div class="qb-num">2</div>
+              <div class="fld"><input class="in" value="Bedroom Bay"></div>
+              <div class="fld"><select class="in"><option>R2B — Roller Linen</option></select></div>
+              <div class="fld"><input class="in mono" value="36"></div>
+              <div class="fld"><input class="in mono" value="60"></div>
+              <div class="fld"><select class="in"><option>E</option></select></div>
+              <div class="fld"><select class="in"><option>Motor · R</option></select></div>
+              <div class="fld"><input class="in mono" value="$ 268.00"></div>
+              <button class="qb-del"><svg viewBox="0 0 24 24"><path d="M6 7h12M9 7V5h6v2m-1 0v12H10V7"/></svg></button>
+            </div>
+          </div>
+          <div class="qb-total"><span class="t-l">Subtotal + tax</span><span class="t-v">$ 609.00</span></div>
+        </div>
+      </div>
+
+      <!-- Component library -->
+      <div class="card">
+        <div class="card-h"><h2>Component Set</h2><span class="meta">building blocks reused across every screen</span></div>
+        <div style="padding:20px;">
+          <div class="section-label">Buttons</div>
+          <div class="swatch">
+            <button class="btn btn-pri">Primary</button>
+            <button class="btn btn-sec">Secondary</button>
+            <button class="btn btn-ghost">Ghost</button>
+            <button class="btn btn-sec btn-sm">Small</button>
+            <button class="btn btn-sec btn-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg></button>
+          </div>
+          <div class="section-label">Status badges</div>
+          <div class="swatch">
+            <span class="badge b-new"><span class="dot"></span>New</span>
+            <span class="badge b-meas"><span class="dot"></span>Measured</span>
+            <span class="badge b-prod"><span class="dot"></span>In Production</span>
+            <span class="badge b-ready"><span class="dot"></span>Ready</span>
+            <span class="badge b-done"><span class="dot"></span>Installed</span>
+          </div>
+          <div class="section-label">Cut-sheet values (monospace, 1/16")</div>
+          <div class="swatch">
+            <span class="cut">Cassette 48 3/16"</span>
+            <span class="cut">Roller 47 10/16"</span>
+            <span class="cut">Fabric W 47 9/16"</span>
+            <span class="cut">Drop 72 14/16"</span>
+            <span class="cut">3.702 m</span>
+          </div>
+          <div class="section-label">Inputs</div>
+          <div class="swatch" style="max-width:520px;">
+            <input class="in" style="flex:1;min-width:160px;" placeholder="Client name">
+            <select class="in" style="width:160px;"><option>Status: All</option></select>
+            <input class="in mono" style="width:120px;" value="48 1/2">
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>
