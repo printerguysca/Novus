@@ -459,6 +459,21 @@ function confirmDialog(message,opts={}){
     document.addEventListener('keydown',onKey);document.body.appendChild(wrap);
   });
 }
+// Type-to-confirm: user must type/paste the exact title to enable the delete button
+function confirmType(title,opts={}){
+  return new Promise(resolve=>{
+    const wrap=document.createElement('div');wrap.className='mo';
+    wrap.innerHTML=`<div class="md msm"><div class="mh"><h3>${opts.title||'Confirm deletion'}</h3></div><div class="mb"><div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:14px">${opts.message||`This will move <strong>${title}</strong> to Trash — kept 90 days, then permanently deleted automatically.`}</div><div class="fg"><label>Type <span style="font-family:var(--mono);color:var(--text);font-weight:700">${title}</span> to confirm</label><input id="_ctIn" autocomplete="off" placeholder="${title}"/></div></div><div class="mf"><button class="btn bsec" data-a="0">Cancel</button><button class="btn bd" data-a="1" id="_ctOk" disabled style="opacity:.5;pointer-events:none">${opts.okLabel||'Delete'}</button></div></div>`;
+    const close=v=>{document.removeEventListener('keydown',onKey);wrap.remove();resolve(v);};
+    const onKey=e=>{if(e.key==='Escape')close(false);};
+    wrap.addEventListener('click',e=>{if(e.target===wrap)return close(false);const b=e.target.closest('[data-a]');if(b)close(b.dataset.a==='1');});
+    document.body.appendChild(wrap);
+    const inp=wrap.querySelector('#_ctIn'),ok=wrap.querySelector('#_ctOk');
+    inp.addEventListener('input',()=>{const m=inp.value.trim()===String(title).trim();ok.disabled=!m;ok.style.opacity=m?'1':'.5';ok.style.pointerEvents=m?'auto':'none';});
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!ok.disabled)close(true);});
+    setTimeout(()=>inp.focus(),50);
+  });
+}
 // ── PAGE CACHE (stale-while-revalidate, 45s TTL) ──
 const _pc={};
 function pcGet(k){const c=_pc[k];return c&&Date.now()-c.t<45000?c.d:null;}
@@ -518,7 +533,7 @@ async function rDash(){
 <script>
 // ── JOBS ──
 function _renderJobs(jobs){
-  if(can('owner','admin','sales'))$('tactions').innerHTML=`<button class="btn bsec bsm" onclick="mUploadCSV()">Upload CSV</button><button class="btn bp bsm" onclick="mNewJob()">New Job</button>`;
+  if(can('owner','admin','sales'))$('tactions').innerHTML=`${can('owner','admin')?`<button class="btn bsec bsm" onclick="rJobsTrash()">Trash</button>`:''}<button class="btn bsec bsm" onclick="mUploadCSV()">Upload CSV</button><button class="btn bp bsm" onclick="mNewJob()">New Job</button>`;
   window._jJobs=jobs;window._jFilter='all';
   window._jRender=function(f){
     if(f!==undefined)window._jFilter=f;
@@ -526,17 +541,24 @@ function _renderJobs(jobs){
     const list=(window._jFilter==='all'?window._jJobs:window._jJobs.filter(j=>j.status===window._jFilter))
       .filter(j=>!q||[j.job_number,j.client_name,j.rep].some(v=>(v||'').toLowerCase().includes(q)));
     const tbody=$('jt');if(!tbody)return;
-    tbody.innerHTML=list.length?list.map(j=>`<tr><td><a style="color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none" onclick="nav('job-detail',${j.id})">${j.job_number}</a></td><td><strong>${j.client_name||'—'}</strong><br><span style="font-size:11px;color:var(--text3)">${j.client_address||''}</span></td><td class="muted">${j.rep||'—'}</td><td class="muted">${fd(j.date_in)}</td><td class="muted">${fd(j.date_due)}</td><td><span class="badge bbl">${j.window_count||0} windows</span></td><td>${sb(j.status)}</td><td style="display:flex;gap:4px"><button class="btn bsec bxs" onclick="nav('job-detail',${j.id})">Open</button>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="dJob(${j.id})">Delete</button>`:''}</td></tr>`).join(''):emp('No jobs found','');
+    tbody.innerHTML=list.length?list.map(j=>`<tr><td><a style="color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none" onclick="nav('job-detail',${j.id})">${j.job_number}</a></td><td><strong>${j.client_name||'—'}</strong><br><span style="font-size:11px;color:var(--text3)">${j.client_address||''}</span></td><td class="muted">${j.rep||'—'}</td><td class="muted">${fd(j.date_in)}</td><td class="muted">${fd(j.date_due)}</td><td><span class="badge bbl">${j.window_count||0} windows</span></td><td>${sb(j.status)}</td><td style="display:flex;gap:4px"><button class="btn bsec bxs" onclick="nav('job-detail',${j.id})">Open</button>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="dJob(${j.id},'${j.job_number}')">Delete</button>`:''}</td></tr>`).join(''):emp('No jobs found','');
   };
   $('content').innerHTML=`<div class="tabs" id="jf">${['all','new','measured','in_production','ready','installed'].map(s=>`<button class="tab ${s==='all'?'active':''}" data-s="${s}" onclick="setJF('${s}')">${s==='all'?'All Jobs':s.replace('_',' ')}</button>`).join('')}</div><div class="card"><div class="ch"><h2 style="margin:0">Jobs</h2><input id="js_s" placeholder="Search job #, client, rep…" oninput="window._jRender()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;width:220px"/></div><div class="tw"><table><thead><tr><th>Job #</th><th>Client</th><th>Rep</th><th>Date In</th><th>Due</th><th>Windows</th><th>Status</th><th>Actions</th></tr></thead><tbody id="jt"></tbody></table></div></div>`;
   window._jRender('all');
   window.setJF=f=>{document.querySelectorAll('#jf .tab').forEach(b=>b.classList.toggle('active',b.dataset.s===f));window._jRender(f);};
-  window.dJob=async id=>{if(!await confirmDialog('Delete this job?'))return;await del('/api/jobs/'+id);toast('Job deleted');pcInvalidate('jobs');rJobs();};
+  window.dJob=async (id,num)=>{if(!await confirmType(num||('Job #'+id)))return;await del('/api/jobs/'+id);toast('Job moved to Trash');pcInvalidate('jobs');rJobs();};
 }
 async function rJobs(){
   const cached=pcGet('jobs');if(cached)_renderJobs(cached);
   const jobs=await get('/api/jobs');pcSet('jobs',jobs);_renderJobs(jobs);
 }
+async function rJobsTrash(){
+  const trash=await get('/api/jobs/trash');
+  $('tactions').innerHTML=`<button class="btn bp bsm" onclick="rJobs()">← Back to Jobs</button>`;
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Jobs Trash (${trash.length})</h2><span class="muted" style="font-size:12px">Kept 90 days, then deleted automatically</span></div><div class="tw"><table><thead><tr><th>Job #</th><th>Client</th><th>Status</th><th>Deleted</th><th>Auto-deletes in</th><th>Actions</th></tr></thead><tbody>${trash.length?trash.map(j=>`<tr><td><strong>${j.job_number}</strong></td><td>${j.client_name||'—'}</td><td>${sb(j.status)}</td><td class="muted">${fd(j.deleted_at)}</td><td><span class="badge ${j.days_left<=7?'brd':j.days_left<=30?'bam':'bgy'}">${j.days_left} day${j.days_left===1?'':'s'}</span></td><td style="display:flex;gap:4px"><button class="btn bsec bxs" onclick="restoreJob(${j.id})">Restore</button><button class="btn bg bxs" style="color:var(--red)" onclick="purgeJob(${j.id},'${j.job_number}')">Delete Forever</button></td></tr>`).join(''):emp('Trash is empty','Deleted jobs appear here for 90 days')}</tbody></table></div></div>`;
+}
+async function restoreJob(id){await post('/api/jobs/'+id+'/restore');toast('Job restored');pcInvalidate('jobs');rJobsTrash();}
+async function purgeJob(id,num){if(!await confirmType(num||('Job #'+id),{okLabel:'Delete forever',message:`Permanently delete <strong>${num}</strong> and all of its windows now? This cannot be undone.`}))return;await del('/api/jobs/'+id+'/purge');toast('Job permanently deleted');rJobsTrash();}
 async function mNewJob(){
   const clients=await get('/api/clients');
   openModal(`<div class="md mmd"><div class="mh"><h3>New Job</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
@@ -817,10 +839,10 @@ ${windows.map(w=>{
 // ── CLIENTS ──
 function _renderClients(clients){
   window._cc=clients;
-  $('tactions').innerHTML=`<button class="btn bp bsm" onclick="mClient()">New Client</button>`;
+  $('tactions').innerHTML=`${can('owner','admin')?`<button class="btn bsec bsm" onclick="rClientsTrash()">Trash</button>`:''}<button class="btn bp bsm" onclick="mClient()">New Client</button>`;
   function render(q){
     const list=q?clients.filter(c=>[c.name,c.address,c.contact,c.phone,c.email].join(' ').toLowerCase().includes(q.toLowerCase())):clients;
-    $('cl_tbody').innerHTML=list.length?list.map(c=>`<tr style="cursor:pointer" onclick="mClient(${c.id})"><td><strong style="color:var(--accent)">${c.name}</strong></td><td class="muted">${c.address||'—'}</td><td class="muted">${c.contact||'—'}</td><td class="muted">${c.phone||'—'}</td><td class="muted">${c.email||'—'}</td><td><button class="btn bg bxs" onclick="event.stopPropagation();mClient(${c.id})">Edit</button></td></tr>`).join(''):emp('No clients match','Try a different search');
+    $('cl_tbody').innerHTML=list.length?list.map(c=>`<tr style="cursor:pointer" onclick="mClient(${c.id})"><td><strong style="color:var(--accent)">${c.name}</strong></td><td class="muted">${c.address||'—'}</td><td class="muted">${c.contact||'—'}</td><td class="muted">${c.phone||'—'}</td><td class="muted">${c.email||'—'}</td><td style="display:flex;gap:4px"><button class="btn bg bxs" onclick="event.stopPropagation();mClient(${c.id})">Edit</button>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="event.stopPropagation();dClient(${c.id})">Delete</button>`:''}</td></tr>`).join(''):emp('No clients match','Try a different search');
   }
   $('content').innerHTML=`<div class="card"><div class="ch"><h2>Clients (${clients.length})</h2><input id="cl_s" placeholder="Search clients…" oninput="window._clRender(this.value)" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;width:220px"/></div><div class="tw"><table><thead><tr><th>Name</th><th>Address</th><th>Contact</th><th>Phone</th><th>Email</th><th></th></tr></thead><tbody id="cl_tbody"></tbody></table></div></div>`;
   window._clRender=render;render('');
@@ -830,6 +852,24 @@ async function rClients(){
   const cached=pcGet('clients');if(cached)_renderClients(cached);
   const clients=await get('/api/clients');pcSet('clients',clients);_renderClients(clients);
 }
+async function dClient(id){
+  const c=(window._cc||[]).find(x=>x.id===id);const name=c?c.name:('Customer #'+id);
+  let dep;try{dep=await get('/api/clients/'+id+'/dependents');}catch(e){dep={jobs:[],quotes:[]};}
+  if((dep.jobs&&dep.jobs.length)||(dep.quotes&&dep.quotes.length)){
+    const li=(arr,k)=>arr.map(x=>`<li style="margin-bottom:3px">${x[k]} <span class="muted">— ${x.status}</span></li>`).join('');
+    openModal(`<div class="md mmd"><div class="mh"><h3>Can't delete ${name} yet</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb"><div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:14px">This customer still has linked records. Delete or reassign these first, then you can move the customer to Trash.</div>${dep.jobs.length?`<div class="fss" style="margin-top:0">Jobs (${dep.jobs.length})</div><ul style="margin:0 0 14px 18px;font-size:13px">${li(dep.jobs,'job_number')}</ul>`:''}${dep.quotes.length?`<div class="fss">Quotes (${dep.quotes.length})</div><ul style="margin:0 0 0 18px;font-size:13px">${li(dep.quotes,'quote_number')}</ul>`:''}</div><div class="mf"><button class="btn bp" onclick="closeModal()">Got it</button></div></div>`);
+    return;
+  }
+  if(!await confirmType(name,{message:`Move customer <strong>${name}</strong> to Trash? Kept 90 days, then permanently deleted automatically.`}))return;
+  await del('/api/clients/'+id);toast('Customer moved to Trash');pcInvalidate('clients');rClients();
+}
+async function rClientsTrash(){
+  const trash=await get('/api/clients/trash');
+  $('tactions').innerHTML=`<button class="btn bp bsm" onclick="rClients()">← Back to Clients</button>`;
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Customers Trash (${trash.length})</h2><span class="muted" style="font-size:12px">Kept 90 days, then deleted automatically</span></div><div class="tw"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Deleted</th><th>Auto-deletes in</th><th>Actions</th></tr></thead><tbody>${trash.length?trash.map(c=>`<tr><td><strong>${c.name}</strong></td><td class="muted">${c.phone||'—'}</td><td class="muted">${c.email||'—'}</td><td class="muted">${fd(c.deleted_at)}</td><td><span class="badge ${c.days_left<=7?'brd':c.days_left<=30?'bam':'bgy'}">${c.days_left} day${c.days_left===1?'':'s'}</span></td><td style="display:flex;gap:4px"><button class="btn bsec bxs" onclick="restoreClient(${c.id})">Restore</button><button class="btn bg bxs" style="color:var(--red)" onclick="purgeClient(${c.id})">Delete Forever</button></td></tr>`).join(''):emp('Trash is empty','Deleted customers appear here for 90 days')}</tbody></table></div></div>`;
+}
+async function restoreClient(id){await post('/api/clients/'+id+'/restore');toast('Customer restored');pcInvalidate('clients');rClientsTrash();}
+async function purgeClient(id){if(!await confirmDialog('Permanently delete this customer now?\n\nThis cannot be undone.',{okLabel:'Delete forever'}))return;try{await del('/api/clients/'+id+'/purge');toast('Customer permanently deleted');}catch(e){toast('Still linked to jobs/quotes — remove those first','err');}rClientsTrash();}
 function mClient(id){
   const c=id&&window._cc?window._cc.find(x=>x.id===id):null;
   openModal(`<div class="md mmd"><div class="mh"><h3>${id?'Edit Client':'New Client'}</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">

@@ -215,9 +215,9 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
     { data: myTasks },
     { data: qr }
   ] = await Promise.all([
-    supabase.from('jobs').select('status'),
-    supabase.from('clients').select('*', { count: 'exact', head: true }),
-    supabase.from('jobs_list').select('*').order('created_at', { ascending: false }).limit(6),
+    supabase.from('jobs').select('status').is('deleted_at', null),
+    supabase.from('clients').select('*', { count: 'exact', head: true }).is('deleted_at', null),
+    supabase.from('jobs_list').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(6),
     supabase.from('fabrics_view').select('*').eq('active', true).lt('remaining', 20).order('remaining').limit(5),
     supabase.from('tasks_detail').select('*').eq('assigned_to', id).neq('status', 'done').order('due_date').limit(5),
     role === 'owner' ? supabase.from('quotes').select('total,status').in('status', ['accepted','converted']) : Promise.resolve({ data: null })
@@ -239,7 +239,7 @@ app.get('/api/profiles', requireAuth, async (req, res) => {
 // ─── CLIENTS ─────────────────────────────────────────────────────────────────
 
 app.get('/api/clients', requireAuth, ownerAdminSales, async (req, res) => {
-  const { data } = await supabase.from('clients').select('*').order('name');
+  const { data } = await supabase.from('clients').select('*').is('deleted_at', null).order('name');
   res.json(data);
 });
 app.post('/api/clients', requireAuth, ownerAdminSales, async (req, res) => {
@@ -258,17 +258,60 @@ app.patch('/api/clients/:id', requireAuth, ownerAdminSales, async (req, res) => 
   const { data } = await supabase.from('clients').select('*').eq('id', req.params.id).single();
   res.json(data);
 });
+// ─── CLIENT TRASH (owner/admin; blocked while linked to jobs/quotes) ───
+app.get('/api/clients/trash', requireAuth, ownerAdmin, async (req, res) => {
+  const { data } = await supabase.from('clients').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false });
+  const now = Date.now();
+  res.json((data||[]).map(r => ({ ...r, days_left: Math.max(0, Math.ceil((new Date(r.deleted_at).getTime()+90*864e5-now)/864e5)) })));
+});
+app.get('/api/clients/:id/dependents', requireAuth, ownerAdminSales, async (req, res) => {
+  const [{ data: jobs }, { data: quotes }] = await Promise.all([
+    supabase.from('jobs').select('id,job_number,status').eq('client_id', req.params.id).is('deleted_at', null),
+    supabase.from('quotes').select('id,quote_number,status').eq('client_id', req.params.id).is('deleted_at', null)
+  ]);
+  res.json({ jobs: jobs||[], quotes: quotes||[] });
+});
+app.delete('/api/clients/:id', requireAuth, ownerAdmin, async (req, res) => {
+  const [{ data: jobs }, { data: quotes }] = await Promise.all([
+    supabase.from('jobs').select('id').eq('client_id', req.params.id).is('deleted_at', null),
+    supabase.from('quotes').select('id').eq('client_id', req.params.id).is('deleted_at', null)
+  ]);
+  if ((jobs&&jobs.length) || (quotes&&quotes.length)) return res.status(409).json({ error: 'has_dependents', jobs: jobs.length, quotes: quotes.length });
+  const { error } = await supabase.from('clients').update({ deleted_at: new Date().toISOString() }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+app.post('/api/clients/:id/restore', requireAuth, ownerAdmin, async (req, res) => {
+  const { error } = await supabase.from('clients').update({ deleted_at: null }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+app.delete('/api/clients/:id/purge', requireAuth, ownerAdmin, async (req, res) => {
+  const [{ count: jc }, { count: qc }] = await Promise.all([
+    supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('client_id', req.params.id),
+    supabase.from('quotes').select('*', { count: 'exact', head: true }).eq('client_id', req.params.id)
+  ]);
+  if (jc || qc) return res.status(409).json({ error: 'has_dependents' });
+  const { error } = await supabase.from('clients').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
 
 // ─── JOBS ─────────────────────────────────────────────────────────────────────
 
 app.get('/api/jobs', requireAuth, async (req, res) => {
   const { role, id } = req.user;
-  let q = supabase.from('jobs_list').select('*');
+  let q = supabase.from('jobs_list').select('*').is('deleted_at', null);
   if (role === 'sales') q = q.eq('rep_id', id);
   else if (role === 'installer') q = q.in('status', ['ready','installed']);
   else if (role === 'factory') q = q.eq('status', 'in_production');
   const { data } = await q.order('created_at', { ascending: false });
   res.json(data || []);
+});
+app.get('/api/jobs/trash', requireAuth, ownerAdmin, async (req, res) => {
+  const { data } = await supabase.from('jobs_list').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false });
+  const now = Date.now();
+  res.json((data||[]).map(r => ({ ...r, days_left: Math.max(0, Math.ceil((new Date(r.deleted_at).getTime()+90*864e5-now)/864e5)) })));
 });
 app.get('/api/jobs/:id', requireAuth, async (req, res) => {
   const [{ data: job }, { data: windows }] = await Promise.all([
@@ -296,7 +339,23 @@ app.patch('/api/jobs/:id', requireAuth, async (req, res) => {
   res.json(data);
 });
 app.delete('/api/jobs/:id', requireAuth, ownerAdmin, async (req, res) => {
-  await supabase.from('jobs').delete().eq('id', req.params.id);
+  const { error } = await supabase.from('jobs').update({ deleted_at: new Date().toISOString() }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+app.post('/api/jobs/:id/restore', requireAuth, ownerAdmin, async (req, res) => {
+  const { error } = await supabase.from('jobs').update({ deleted_at: null }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+app.delete('/api/jobs/:id/purge', requireAuth, ownerAdmin, async (req, res) => {
+  const id = req.params.id;
+  await supabase.from('quotes').update({ job_id: null }).eq('job_id', id);
+  await supabase.from('tasks').update({ job_id: null }).eq('job_id', id);
+  await supabase.from('calendar_events').update({ job_id: null }).eq('job_id', id);
+  await supabase.from('transfers').update({ job_id: null }).eq('job_id', id);
+  const { error } = await supabase.from('jobs').delete().eq('id', id); // job_windows cascade
+  if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });
 });
 
