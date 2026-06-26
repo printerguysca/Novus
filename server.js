@@ -28,10 +28,124 @@ async function genNumber(table, col, prefix) {
   if (data?.length) { const n = parseInt(data[0][col].split('-').pop()); if (!isNaN(n)) seq = n + 1; }
   return `${prefix}-${year}-${String(seq).padStart(4, '0')}`;
 }
+// Monthly-resetting number: PREFIX + YY + MM + 3-digit sequence, e.g. Q2606001. Resets each month
+// (based on America/Winnipeg local time so the rollover happens at local midnight).
+async function genMonthlyNumber(table, col, prefix) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Winnipeg', year: '2-digit', month: '2-digit' }).formatToParts(new Date());
+  const yy = parts.find(p => p.type === 'year').value;
+  const mm = parts.find(p => p.type === 'month').value;
+  const stem = `${prefix}${yy}${mm}`;
+  const { data } = await supabase.from(table).select(col).like(col, `${stem}%`).order(col, { ascending: false }).limit(1);
+  let seq = 1;
+  if (data?.length) { const n = parseInt(String(data[0][col]).slice(stem.length)); if (!isNaN(n)) seq = n + 1; }
+  return `${stem}${String(seq).padStart(3, '0')}`;
+}
+
+// ─── INVOICES & PAYMENTS ──────────────────────────────────────────────────────
+function invStatus(i, today) {
+  if (i.status === 'void') return 'void';
+  const paid = parseFloat(i.amount_paid)||0, total = parseFloat(i.total)||0;
+  if (total > 0 && paid >= total) return 'paid';
+  if (paid > 0) return 'partial';
+  if (i.due_date && i.due_date < today) return 'overdue';
+  return i.status || 'draft';
+}
+app.get('/api/invoices', requireAuth, requireRole('owner','admin','sales'), async (req, res) => {
+  const { role, id } = req.user;
+  let q = supabase.from('invoices_view').select('*');
+  if (role === 'sales') q = q.eq('created_by', id);
+  const { data } = await q.order('created_at', { ascending: false });
+  const today = new Date().toISOString().slice(0,10);
+  res.json((data||[]).map(i => ({ ...i, balance: (parseFloat(i.total)||0)-(parseFloat(i.amount_paid)||0), display_status: invStatus(i, today) })));
+});
+app.get('/api/invoices/:id', requireAuth, requireRole('owner','admin','sales'), async (req, res) => {
+  const { data: inv } = await supabase.from('invoices_view').select('*').eq('id', req.params.id).single();
+  if (!inv) return res.status(404).json({ error: 'Not found' });
+  const { data: pays } = await supabase.from('payments').select('*').eq('invoice_id', inv.id).order('paid_at', { ascending: true });
+  let items = [];
+  if (inv.quote_id) { const { data } = await supabase.from('quote_items_view').select('*').eq('quote_id', inv.quote_id).order('id'); items = data||[]; }
+  const today = new Date().toISOString().slice(0,10);
+  res.json({ ...inv, balance: (parseFloat(inv.total)||0)-(parseFloat(inv.amount_paid)||0), display_status: invStatus(inv, today), payments: pays||[], items });
+});
+app.post('/api/invoices', requireAuth, requireRole('owner','admin','sales'), async (req, res) => {
+  let { job_id, quote_id, client_id, due_date, subtotal, tax_pct, total, notes, terms } = req.body;
+  if (job_id) {
+    const { data: job } = await supabase.from('jobs').select('client_id,quote_id').eq('id', job_id).single();
+    if (job) { client_id = client_id || job.client_id; quote_id = quote_id || job.quote_id; }
+  }
+  if (quote_id && total == null) {
+    const { data: qd } = await supabase.from('quotes').select('subtotal,tax_pct,total').eq('id', quote_id).single();
+    if (qd) { subtotal = subtotal ?? qd.subtotal; tax_pct = tax_pct ?? qd.tax_pct; total = total ?? qd.total; }
+  }
+  if (!client_id) return res.status(400).json({ error: 'Client is required' });
+  const invoice_number = await genMonthlyNumber('invoices', 'invoice_number', 'I');
+  const { data, error } = await supabase.from('invoices').insert({
+    invoice_number, client_id, job_id: job_id||null, quote_id: quote_id||null,
+    due_date: due_date||null, subtotal: subtotal||0, tax_pct: tax_pct ?? 5, total: total||0,
+    notes: notes||null, terms: terms||null, status: 'draft', created_by: req.user.id
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+app.patch('/api/invoices/:id', requireAuth, requireRole('owner','admin','sales'), async (req, res) => {
+  const upd = {};
+  for (const k of ['due_date','subtotal','tax_pct','total','notes','terms','status']) if (k in req.body) upd[k] = req.body[k];
+  if (!Object.keys(upd).length) return res.status(400).json({ error: 'Nothing to update' });
+  const { data, error } = await supabase.from('invoices').update(upd).eq('id', req.params.id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+app.post('/api/invoices/:id/payments', requireAuth, requireRole('owner','admin','sales'), async (req, res) => {
+  const amt = parseFloat(req.body.amount);
+  if (isNaN(amt) || amt <= 0) return res.status(400).json({ error: 'Amount must be a positive number' });
+  const { error } = await supabase.from('payments').insert({
+    invoice_id: req.params.id, amount: amt, method: req.body.method||null, reference: req.body.reference||null,
+    paid_at: req.body.paid_at || new Date().toISOString().slice(0,10), notes: req.body.notes||null, created_by: req.user.id
+  });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+app.delete('/api/payments/:id', requireAuth, requireRole('owner','admin'), async (req, res) => {
+  const { error } = await supabase.from('payments').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
 
 async function logMovement(item_type, item_id, item_name, movement_type, qty, job_id, shipment_id, notes) {
   await supabase.from('movements').insert({ item_type, item_id, item_name, movement_type, qty, job_id, shipment_id, notes });
 }
+
+// ── HARDWARE BAR STOCK (single pooled stock; 225" bars; cut + 4" waste per piece) ──
+async function deductBarsForWindow(cuts, jobId) {
+  if (!cuts) return;
+  const WASTE = 4;
+  let len = 0;
+  for (const v of [cuts.cut_cassette, cuts.cut_roller, cuts.cut_bottom_rail, cuts.cut_bottom_core]) {
+    const n = parseFloat(v) || 0; if (n > 0) len += n + WASTE;
+  }
+  if (len <= 0) return;
+  const { data: b } = await supabase.from('bar_stock').select('used_length_in').eq('id', 1).single();
+  await supabase.from('bar_stock').update({ used_length_in: (parseFloat(b?.used_length_in)||0) + len, updated_at: new Date().toISOString() }).eq('id', 1);
+  await logMovement('hardware', null, 'Bar stock', 'cut', -parseFloat(len.toFixed(2)), jobId || null, null, `Hardware ${len.toFixed(1)}" (cut + 4" waste/piece)`);
+}
+app.get('/api/barstock', requireAuth, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const { data } = await supabase.from('bar_stock').select('*').eq('id', 1).single();
+  const b = data || { total_bars: 0, bar_length_in: 225, used_length_in: 0 };
+  const barLen = parseFloat(b.bar_length_in) || 225;
+  const totalLen = (parseFloat(b.total_bars)||0) * barLen;
+  const avail = totalLen - (parseFloat(b.used_length_in)||0);
+  res.json({ ...b, total_length_in: totalLen, available_length_in: avail, bars_remaining: barLen ? avail/barLen : 0 });
+});
+app.patch('/api/barstock', requireAuth, requireRole('owner','admin','warehouse'), async (req, res) => {
+  const upd = { updated_at: new Date().toISOString() };
+  if (req.body.total_bars != null) upd.total_bars = parseFloat(req.body.total_bars) || 0;
+  if (req.body.bar_length_in != null) upd.bar_length_in = parseFloat(req.body.bar_length_in) || 225;
+  if (req.body.used_length_in != null) upd.used_length_in = parseFloat(req.body.used_length_in) || 0;
+  const { error } = await supabase.from('bar_stock').update(upd).eq('id', 1);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
 
 // Deductions now live in the profiles table (editable in the GUI). These hardcoded
 // values are only a last-resort fallback if the DB read fails.
@@ -57,8 +171,13 @@ function invalidateProfileCache() { _profMap = null; _profMapAt = 0; }
 async function calcCuts(w) {
   const PM = await getProfileMap();
   const p = PM[w.profile_code] || DEFAULT_P[w.profile_code]; if (!p) return null;
-  const tw = (parseFloat(w.width_in)||0) + (parseFloat(w.width_frac)||0);
-  const tl = (parseFloat(w.length_in)||0) + (parseFloat(w.length_frac)||0);
+  // Prefer the on-site measured size (per dimension) when present; fall back to the quoted size.
+  const tw = (w.measured_width_in != null)
+    ? (parseFloat(w.measured_width_in)||0) + (parseFloat(w.measured_width_frac)||0)
+    : (parseFloat(w.width_in)||0) + (parseFloat(w.width_frac)||0);
+  const tl = (w.measured_length_in != null)
+    ? (parseFloat(w.measured_length_in)||0) + (parseFloat(w.measured_length_frac)||0)
+    : (parseFloat(w.length_in)||0) + (parseFloat(w.length_frac)||0);
   const cut_cassette = parseFloat((tw+p.c).toFixed(4));
   const cut_roller = parseFloat((tw+p.r).toFixed(4));
   const cut_bottom_rail = parseFloat((tw+p.br).toFixed(4));
@@ -440,7 +559,7 @@ app.get('/api/jobs/:id', requireAuth, async (req, res) => {
 });
 app.post('/api/jobs', requireAuth, requireRole('owner','admin','sales'), async (req, res) => {
   const { client_id, rep, date_in, date_due, notes } = req.body;
-  const job_number = await genNumber('jobs', 'job_number', 'SB');
+  const job_number = await genMonthlyNumber('jobs', 'job_number', 'SB');
   const { data, error } = await supabase.from('jobs').insert({ job_number, client_id, rep: rep||req.user.name, rep_id: req.user.id, date_in, date_due, notes }).select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
@@ -494,6 +613,7 @@ app.post('/api/jobs/:job_id/windows', requireAuth, async (req, res) => {
     cord_wand_size: cuts?.cord_wand_size, bracket_count: cuts?.bracket_count
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
+  await deductBarsForWindow(cuts, job_id);
   // Fetch with joined data for response
   const { data: full } = await supabase.from('windows_detail').select('*').eq('id', win.id).single();
   res.json(full);
@@ -516,7 +636,7 @@ app.post('/api/jobs/import', requireAuth, async (req, res) => {
       client_id = c.id;
     }
     // 2. Create job
-    const job_number = await genNumber('jobs', 'job_number', 'SB');
+    const job_number = await genMonthlyNumber('jobs', 'job_number', 'SB');
     const { data: job } = await supabase.from('jobs').insert({
       job_number, client_id, rep: req.user.name, rep_id: req.user.id,
       date_in: new Date().toISOString().split('T')[0], notes: notes||'', status: 'new'
@@ -535,10 +655,11 @@ app.post('/api/jobs/import', requireAuth, async (req, res) => {
         cut_fabric_drop: cuts?.cut_fabric_drop, fabric_meters: cuts?.fabric_meters,
         cord_wand_size: cuts?.cord_wand_size, bracket_count: cuts?.bracket_count
       });
+      await deductBarsForWindow(cuts, job.id);
     }
     // 4. Optionally create quote
     if (quote) {
-      const qn = quote.quote_number || await genNumber('quotes', 'quote_number', 'QT');
+      const qn = quote.quote_number || await genMonthlyNumber('quotes', 'quote_number', 'Q');
       const subtotal = parseFloat(quote.subtotal)||0;
       const disc = parseFloat(quote.discount_pct)||0;
       const tax = parseFloat(quote.tax_pct)||5;
@@ -612,7 +733,7 @@ app.get('/api/quotes/:id', requireAuth, ownerAdminSales, async (req, res) => {
 app.post('/api/quotes', requireAuth, ownerAdminSales, async (req, res) => {
   const { client_id, customer_notes, terms, valid_until, date_due, items, discount_pct, tax_pct,
           markup, upgrades, amount_paid, discount_reason, hide_prices, notes } = req.body;
-  const quote_number = await genNumber('quotes', 'quote_number', 'QT');
+  const quote_number = await genMonthlyNumber('quotes', 'quote_number', 'Q');
   const msrp = (items||[]).reduce((s,i) => {
     const lp = (i.unit_price||0)*(i.qty||1);
     return s + (lp - lp*((i.discount_pct||0)/100));
@@ -704,7 +825,7 @@ app.post('/api/quotes/:id/convert', requireAuth, ownerAdmin, async (req, res) =>
   const { data: q } = await supabase.from('quotes').select('*').eq('id', req.params.id).single();
   if (!q) return res.status(404).json({ error: 'Not found' });
   const { data: qItems } = await supabase.from('quote_items').select('*').eq('quote_id', q.id).order('id');
-  const job_number = await genNumber('jobs', 'job_number', 'SB');
+  const job_number = await genMonthlyNumber('jobs', 'job_number', 'SB');
   const { data: job, error: jobErr } = await supabase.from('jobs').insert({
     job_number, client_id: q.client_id, rep_id: q.created_by, rep: req.user.name,
     date_in: new Date().toISOString().split('T')[0],
@@ -752,6 +873,7 @@ app.post('/api/quotes/:id/convert', requireAuth, ownerAdmin, async (req, res) =>
         fabric_meters: cuts?.fabric_meters||null, cord_wand_size: cuts?.cord_wand_size||null,
         bracket_count: cuts?.bracket_count||null
       });
+      await deductBarsForWindow(cuts, job.id);
     }
   }
   await supabase.from('quotes').update({ status: 'converted', job_id: job.id }).eq('id', q.id);
@@ -1004,7 +1126,9 @@ app.get('/api/calendar', requireAuth, async (req, res) => {
   const { role, id } = req.user;
   const { month, year } = req.query;
   let q = supabase.from('calendar_detail').select('*');
-  if (month && year) {
+  if (req.query.job) {
+    q = q.eq('job_id', req.query.job);
+  } else if (month && year) {
     const start = `${year}-${String(month).padStart(2,'0')}-01`;
     const nextM = parseInt(month) === 12 ? 1 : parseInt(month)+1;
     const nextY = parseInt(month) === 12 ? parseInt(year)+1 : parseInt(year);
@@ -1186,16 +1310,7 @@ app.patch('/api/windows/:id/production', requireAuth, async (req, res) => {
   if (action === 'start_cut') { updates.production_status = 'cutting'; }
   else if (action === 'finish_cut') {
     updates.production_status = 'cut'; updates.cut_at = now; updates.cut_by = name;
-    // Deduct fabric from inventory
-    const { data: wf } = await supabase.from('job_windows').select('fabric_id,fabric_meters,location,job_id').eq('id', req.params.id).single();
-    if (wf?.fabric_id && wf?.fabric_meters) {
-      const { data: fab } = await supabase.from('fabrics').select('remaining,alias,catalogue_no').eq('id', wf.fabric_id).single();
-      if (fab) {
-        const newRemaining = Math.max(0, parseFloat(fab.remaining||0) - parseFloat(wf.fabric_meters));
-        await supabase.from('fabrics').update({ remaining: newRemaining }).eq('id', wf.fabric_id);
-        await logMovement('fabric', wf.fabric_id, `${fab.catalogue_no} — ${fab.alias}`, 'cut', wf.fabric_meters, wf.job_id, null, `Cut for window: ${wf.location||''}`);
-      }
-    }
+    // Fabric is no longer deducted at cutting — hardware bar stock is deducted at job creation instead.
   }
   else if (action === 'start_assemble') { updates.production_status = 'assembling'; }
   else if (action === 'finish_assemble') { updates.production_status = 'assembled'; updates.assembled_at = now; updates.assembled_by = name; }
@@ -1249,6 +1364,47 @@ app.post('/api/jobs/:id/recalculate', requireAuth, ownerAdmin, async (req, res) 
     updated++;
   }
   res.json({ updated });
+});
+// Record on-site measurements for a window; cuts recompute from the measured size.
+app.patch('/api/windows/:id/measure', requireAuth, async (req, res) => {
+  const m = {};
+  for (const k of ['measured_width_in','measured_width_frac','measured_length_in','measured_length_frac']) {
+    if (k in req.body) m[k] = (req.body[k]==='' || req.body[k]==null) ? null : parseFloat(req.body[k]);
+  }
+  m.measured_at = new Date().toISOString();
+  m.measured_by = req.user.name;
+  const { error: uErr } = await supabase.from('job_windows').update(m).eq('id', req.params.id);
+  if (uErr) return res.status(500).json({ error: uErr.message });
+  const { data: w } = await supabase.from('job_windows').select('*').eq('id', req.params.id).single();
+  if (w) { const cuts = await calcCuts(w); if (cuts) await supabase.from('job_windows').update(cuts).eq('id', req.params.id); }
+  res.json({ ok: true });
+});
+// Assign a measure technician + date to a job (office only).
+app.patch('/api/jobs/:id/measure-assign', requireAuth, requireRole('owner','admin','sales'), async (req, res) => {
+  const { error } = await supabase.from('jobs').update({
+    measure_tech_id: req.body.measure_tech_id ? parseInt(req.body.measure_tech_id) : null,
+    measure_date: req.body.measure_date || null
+  }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  // Keep one auto 'measure' calendar event in sync with the assignment
+  await supabase.from('calendar_events').delete().eq('job_id', req.params.id).eq('event_type', 'measure');
+  if (req.body.measure_date) {
+    const { data: j } = await supabase.from('jobs').select('job_number,client_id').eq('id', req.params.id).single();
+    let cname = '';
+    if (j?.client_id) { const { data: c } = await supabase.from('clients').select('name').eq('id', j.client_id).single(); cname = c?.name || ''; }
+    await supabase.from('calendar_events').insert({
+      title: `Measure — ${j?.job_number||''}${cname ? (' · ' + cname) : ''}`,
+      event_type: 'measure', start_date: req.body.measure_date,
+      assigned_to: req.body.measure_tech_id ? parseInt(req.body.measure_tech_id) : null,
+      job_id: parseInt(req.params.id), created_by: req.user.id
+    });
+  }
+  res.json({ ok: true });
+});
+// Lightweight active-user list for assignment dropdowns (any authenticated user).
+app.get('/api/users/list', requireAuth, async (req, res) => {
+  const { data } = await supabase.from('users').select('id,name,role').eq('active', true).order('name');
+  res.json(data || []);
 });
 
 // ─── CUT SHEET ────────────────────────────────────────────────────────────────

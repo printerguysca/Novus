@@ -398,9 +398,9 @@ function fabOptsDoubleRoller(selected){
   return'<option value="">Select fabric...</option>'+all.map(f=>`<option value="${f.code}" ${selected===f.code?'selected':''}>${fabLabel(f)}</option>`).join('');
 }
 const ROLE_NAV={
-  owner:[{s:'Overview'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'Jobs'},{s:'Production'},{p:'production',l:'Production Queue'},{s:'Office'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'},{s:'Warehouse'},{p:'fabric',l:'Fabric Stock'},{p:'hardware',l:'Hardware Stock'},{p:'shipments',l:'Shipments'},{p:'transfers',l:'Transfers'},{p:'movements',l:'Movement Log'},{s:'Admin'},{p:'reports',l:'Reports'},{p:'users',l:'Users'},{p:'cutprofiles',l:'Cut Profiles'}],
-  admin:[{s:'Overview'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'All Jobs'},{s:'Office'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'},{s:'Warehouse'},{p:'fabric',l:'Fabric (view)'},{p:'transfers',l:'Transfers'},{s:'Admin'},{p:'users',l:'Users'},{p:'cutprofiles',l:'Cut Profiles'}],
-  sales:[{s:'My Work'},{p:'dashboard',l:'Dashboard'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'jobs',l:'My Jobs'},{s:'Reference'},{p:'fabric',l:'Fabric Library'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'}],
+  owner:[{s:'Overview'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'Jobs'},{s:'Production'},{p:'production',l:'Production Queue'},{s:'Office'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'invoices',l:'Invoices'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'},{s:'Warehouse'},{p:'fabric',l:'Fabric Stock'},{p:'hardware',l:'Hardware Stock'},{p:'shipments',l:'Shipments'},{p:'transfers',l:'Transfers'},{p:'movements',l:'Movement Log'},{s:'Admin'},{p:'reports',l:'Reports'},{p:'users',l:'Users'},{p:'cutprofiles',l:'Cut Profiles'}],
+  admin:[{s:'Overview'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'All Jobs'},{s:'Office'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'invoices',l:'Invoices'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'},{s:'Warehouse'},{p:'fabric',l:'Fabric (view)'},{p:'transfers',l:'Transfers'},{s:'Admin'},{p:'users',l:'Users'},{p:'cutprofiles',l:'Cut Profiles'}],
+  sales:[{s:'My Work'},{p:'dashboard',l:'Dashboard'},{p:'clients',l:'Clients'},{p:'quotes',l:'Quotes'},{p:'invoices',l:'Invoices'},{p:'jobs',l:'My Jobs'},{s:'Reference'},{p:'fabric',l:'Fabric Library'},{p:'calendar',l:'Calendar'},{p:'tasks',l:'Tasks'}],
   warehouse:[{s:'Operations'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'Jobs'},{p:'production',l:'Production Queue'},{s:'Inventory'},{p:'fabric',l:'Fabric Stock'},{p:'hardware',l:'Hardware Stock'},{p:'shipments',l:'Shipments'},{p:'transfers',l:'Transfers'},{s:'Logs'},{p:'movements',l:'Movement Log'},{p:'tasks',l:'Tasks'}],
   installer:[{s:'My Work'},{p:'dashboard',l:'Dashboard'},{p:'jobs',l:'My Jobs'},{p:'tasks',l:'Tasks'},{p:'calendar',l:'Calendar'}],
   factory:[{s:'Production'},{p:'dashboard',l:'Dashboard'},{p:'production',l:'Production Queue'},{p:'jobs',l:'Production Jobs'},{p:'tasks',l:'Tasks'}],
@@ -510,6 +510,7 @@ function nav(page,param){
   const p=page;
   if(p==='dashboard')rDash();else if(p==='jobs')rJobs();else if(p.startsWith('job-detail'))rJobDetail(param);
   else if(p==='clients')rClients();else if(p==='quotes')rQuotes();else if(p.startsWith('quote-edit'))rQuoteBuilder(param);
+  else if(p==='invoices')rInvoices();else if(p.startsWith('invoice-detail'))rInvoiceDetail(param);
   else if(p==='fabric')rFabric();
   else if(p==='hardware')rHardware();else if(p==='shipments')rShipments();else if(p==='transfers')rTransfers();
   else if(p==='movements')rMovements();else if(p==='tasks')rTasks();else if(p==='calendar')rCalendar();
@@ -568,6 +569,104 @@ async function purgeProfile(id,code){
   if(!await confirmType(code,{message:`Permanently delete profile <strong>${code}</strong>? This cannot be undone.`,okLabel:'Delete forever'}))return;
   try{await del('/api/profiles/'+id+'/purge');}catch(e){toast(e.message==='in_use'?'Still used by active jobs/quotes — reassign first':(e.message||'Delete failed'),'err');return;}
   toast('Profile '+code+' permanently deleted');rCutProfilesTrash();
+}
+// ── INVOICES & PAYMENTS ──
+function invBadge(s){const m={draft:['bgy','Draft'],sent:['bbl','Sent'],partial:['bam','Partial'],paid:['bgr','Paid'],overdue:['brd','Overdue'],void:['bgy','Void']};const[c,l]=m[s]||['bgy',s];return`<span class="badge ${c}">${l}</span>`;}
+async function rInvoices(){
+  $('tactions').innerHTML='<button class="btn bp bsm" onclick="mNewInvoice()">New Invoice</button>';
+  const list=await get('/api/invoices');window._ivData=list;
+  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Invoices (${list.length})</h2><input id="iv_s" placeholder="Search invoice #, client, job…" oninput="window._ivRender()" style="padding:6px 10px;border:1px solid var(--border2);border-radius:6px;font-size:13px;width:240px"/></div><div class="tw"><table><thead><tr><th>Invoice #</th><th>Client</th><th>Job</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th>Due</th></tr></thead><tbody id="iv_tbody"></tbody></table></div></div>`;
+  window._ivRender=()=>{const q=($('iv_s')?.value||'').toLowerCase();const rows=list.filter(i=>!q||[i.invoice_number,i.client_name,i.job_number].some(v=>(v||'').toLowerCase().includes(q)));$('iv_tbody').innerHTML=rows.length?rows.map(i=>`<tr style="cursor:pointer" onclick="nav('invoice-detail',${i.id})"><td><strong style="color:var(--accent)">${i.invoice_number}</strong></td><td>${i.client_name||'—'}</td><td class="muted">${i.job_number||'—'}</td><td class="mono">$${fn(i.total,2)}</td><td class="mono" style="color:var(--green-text)">$${fn(i.amount_paid,2)}</td><td class="mono"><strong style="color:${i.balance>0?'var(--amber-text)':'var(--green-text)'}">$${fn(i.balance,2)}</strong></td><td>${invBadge(i.display_status)}</td><td class="muted">${fd(i.due_date)}</td></tr>`).join(''):emp('No invoices yet','Create one from a job');};
+  window._ivRender();
+}
+async function mNewInvoice(){
+  const jobs=await get('/api/jobs');
+  openModal(`<div class="md mmd"><div class="mh"><h3>New Invoice</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fg"><label>From Job *</label><select id="nij"><option value="">— Select a job —</option>${jobs.map(j=>`<option value="${j.id}">${j.job_number} — ${j.client_name||''}</option>`).join('')}</select></div>
+    <div class="fg"><label>Due Date</label><input type="date" id="nidd"/></div>
+    <div style="font-size:11px;color:var(--text3)">Client, linked quote and totals are pulled from the job automatically — editable after.</div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="saveNewInvoice()">Create</button></div></div>`);
+}
+async function saveNewInvoice(){
+  const job_id=$('nij').value;if(!job_id){toast('Pick a job','err');return;}
+  let inv;try{inv=await post('/api/invoices',{job_id:parseInt(job_id),due_date:$('nidd').value||null});}catch(e){toast(e.message||'Failed','err');return;}
+  closeModal();toast('Invoice '+inv.invoice_number+' created');nav('invoice-detail',inv.id);
+}
+async function jobInvoice(jobId){
+  const list=await get('/api/invoices');const ex=list.find(i=>i.job_id===jobId);
+  if(ex){nav('invoice-detail',ex.id);return;}
+  let inv;try{inv=await post('/api/invoices',{job_id:jobId});}catch(e){toast(e.message||'Failed','err');return;}
+  toast('Invoice '+inv.invoice_number+' created');nav('invoice-detail',inv.id);
+}
+async function rInvoiceDetail(id){
+  const inv=await get('/api/invoices/'+id);
+  $('ptitle').textContent='Invoice '+inv.invoice_number;
+  $('tactions').innerHTML=`<button class="btn bsec bsm" onclick="nav('invoices')">Back</button>${inv.status==='draft'?`<button class="btn bsec bsm" onclick="invSetStatus(${id},'sent')">Mark Sent</button>`:''}${inv.display_status!=='void'?`<button class="btn bsec bsm" style="color:var(--red)" onclick="invVoid(${id})">Void</button>`:''}`;
+  const it=inv.items||[];
+  const itemsRows=it.length?it.map(x=>`<tr><td>${x.location||'—'}</td><td>${x.blind_type||'—'}</td><td class="mono">${ms(x.width_in,x.width_frac)} × ${ms(x.length_in,x.length_frac)}</td><td>${x.qty||1}</td><td class="mono">$${fn(x.line_total!=null?x.line_total:(x.unit_price||0)*(x.qty||1),2)}</td></tr>`).join(''):`<tr><td colspan="5" class="muted" style="text-align:center;padding:14px">No linked line items</td></tr>`;
+  const pays=inv.payments||[];
+  const payRows=pays.length?pays.map(p=>`<tr><td class="muted">${fd(p.paid_at)}</td><td class="mono">$${fn(p.amount,2)}</td><td>${p.method||'—'}</td><td class="muted">${p.reference||''}</td><td>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="delPayment(${p.id},${id})">×</button>`:''}</td></tr>`).join(''):`<tr><td colspan="5" class="muted" style="text-align:center;padding:12px">No payments yet</td></tr>`;
+  $('content').innerHTML=`<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start">
+   <div class="card"><div class="ch"><h2>${inv.invoice_number}</h2>${invBadge(inv.display_status)}</div><div style="padding:16px 20px">
+     <div class="ig" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+       <div><div class="ibl">Client</div><div class="ibv">${inv.client_name||'—'}</div></div>
+       <div><div class="ibl">Job</div><div class="ibv">${inv.job_id?`<a style="color:var(--accent);cursor:pointer" onclick="nav('job-detail',${inv.job_id})">${inv.job_number||'—'}</a>`:'—'}</div></div>
+       <div><div class="ibl">Quote</div><div class="ibv">${inv.quote_id?`<a style="color:var(--accent);cursor:pointer" onclick="nav('quote-edit',${inv.quote_id})">${inv.quote_number||'—'}</a>`:'—'}</div></div>
+       <div><div class="ibl">Due Date</div><div class="ibv">${fd(inv.due_date)}</div></div>
+     </div>
+     <div class="tw"><table><thead><tr><th>Location</th><th>Type</th><th>Size</th><th>Qty</th><th>Total</th></tr></thead><tbody>${itemsRows}</tbody></table></div>
+   </div></div>
+   <div class="card"><div class="ch"><h2>Payments</h2></div><div style="padding:16px 20px">
+     <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span class="muted">Total</span><strong class="mono">$${fn(inv.total,2)}</strong></div>
+     <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span class="muted">Paid</span><strong class="mono" style="color:var(--green-text)">$${fn(inv.amount_paid,2)}</strong></div>
+     <div style="display:flex;justify-content:space-between;font-size:16px;border-top:1px solid var(--border);padding-top:8px;margin-top:6px"><span>Balance</span><strong class="mono" style="color:${inv.balance>0?'var(--amber-text)':'var(--green-text)'}">$${fn(inv.balance,2)}</strong></div>
+     <div class="tw" style="margin-top:14px"><table><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Ref</th><th></th></tr></thead><tbody>${payRows}</tbody></table></div>
+     ${inv.display_status!=='void'&&inv.balance>0?`<div style="border-top:1px solid var(--border);margin-top:14px;padding-top:12px"><div class="fss" style="margin-top:0">Record Payment</div>
+       <div class="fr2"><div class="fg"><label>Amount</label><input class="nospin" type="number" step="0.01" id="payamt" placeholder="${fn(inv.balance,2)}"/></div><div class="fg"><label>Method</label><select id="paymeth"><option value="cash">Cash</option><option value="cheque">Cheque</option><option value="card">Card</option><option value="e-transfer">E-Transfer</option><option value="other">Other</option></select></div></div>
+       <div class="fr2"><div class="fg"><label>Date</label><input type="date" id="paydate" value="${new Date().toISOString().slice(0,10)}"/></div><div class="fg"><label>Reference</label><input id="payref" placeholder="cheque # / txn id"/></div></div>
+       <button class="btn bp" style="width:100%;margin-top:6px" onclick="recordPayment(${id})">Record Payment</button></div>`:''}
+   </div></div>
+  </div>`;
+}
+async function recordPayment(id){
+  const amt=parseFloat($('payamt').value);if(!amt||amt<=0){toast('Enter a valid amount','err');return;}
+  try{await post('/api/invoices/'+id+'/payments',{amount:amt,method:$('paymeth').value,reference:$('payref').value,paid_at:$('paydate').value});}catch(e){toast(e.message||'Failed','err');return;}
+  toast('Payment recorded');rInvoiceDetail(id);
+}
+async function delPayment(pid,invId){if(!await confirmDialog('Remove this payment?',{okLabel:'Remove'}))return;await del('/api/payments/'+pid);toast('Payment removed');rInvoiceDetail(invId);}
+async function invSetStatus(id,s){await patch('/api/invoices/'+id,{status:s});toast('Invoice updated');rInvoiceDetail(id);}
+async function invVoid(id){if(!await confirmDialog('Void this invoice? It will no longer count toward balances.',{okLabel:'Void'}))return;await patch('/api/invoices/'+id,{status:'void'});toast('Invoice voided');rInvoiceDetail(id);}
+// ── MEASUREMENTS ──
+function msShow(w,dim){
+  const qIn=dim==='w'?w.width_in:w.length_in, qFr=dim==='w'?w.width_frac:w.length_frac;
+  const mIn=dim==='w'?w.measured_width_in:w.measured_length_in, mFr=dim==='w'?w.measured_width_frac:w.measured_length_frac;
+  const q=ms(qIn,qFr);
+  if(mIn==null) return q;
+  const m=ms(mIn,mFr);
+  const changed=((parseFloat(mIn)||0)+(parseFloat(mFr)||0))!==((parseFloat(qIn)||0)+(parseFloat(qFr)||0));
+  return changed?`<strong style="color:var(--accent)">${m}</strong><br><span style="font-size:9px;color:var(--text3)">q ${q}</span>`:m;
+}
+async function mMeasure(jid){
+  const job=await get('/api/jobs/'+jid);const wins=job.windows||[];
+  const fsel=(id,val)=>`<select id="${id}">${FRACS.map(([v,l])=>`<option value="${v}" ${String(val)===v?'selected':''}>${l}</option>`).join('')}</select>`;
+  const rows=wins.map(w=>`<tr><td><strong>${w.window_no}</strong> ${w.location||''}</td><td class="mono muted">${ms(w.width_in,w.width_frac)} × ${ms(w.length_in,w.length_frac)}</td><td><input class="nospin" type="number" id="mw_${w.id}" style="width:54px" value="${w.measured_width_in!=null?w.measured_width_in:''}" placeholder="${w.width_in}"/></td><td>${fsel('mwf_'+w.id,w.measured_width_frac!=null?w.measured_width_frac:0)}</td><td><input class="nospin" type="number" id="ml_${w.id}" style="width:54px" value="${w.measured_length_in!=null?w.measured_length_in:''}" placeholder="${w.length_in}"/></td><td>${fsel('mlf_'+w.id,w.measured_length_frac!=null?w.measured_length_frac:0)}</td></tr>`).join('');
+  openModal(`<div class="md mlg"><div class="mh"><h3>Enter Measurements — ${job.job_number}</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb"><div style="font-size:12px;color:var(--text2);margin-bottom:10px">On-site measured size per window. Cuts recompute from these. Leave blank to keep the quoted size.</div><div class="tw"><table><thead><tr><th>Window</th><th>Quoted</th><th>Width</th><th>Frac</th><th>Drop</th><th>Frac</th></tr></thead><tbody>${rows}</tbody></table></div></div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="saveMeasure(${jid},[${wins.map(w=>w.id).join(',')}])">Save Measurements</button></div></div>`);
+}
+async function saveMeasure(jid,ids){
+  for(const id of ids){
+    const wv=$('mw_'+id).value, lv=$('ml_'+id).value;
+    await patch('/api/windows/'+id+'/measure',{measured_width_in:wv===''?null:parseFloat(wv),measured_width_frac:wv===''?null:parseFloat($('mwf_'+id).value),measured_length_in:lv===''?null:parseFloat(lv),measured_length_frac:lv===''?null:parseFloat($('mlf_'+id).value)});
+  }
+  closeModal();toast('Measurements saved — cuts updated');rJobDetail(jid);
+}
+async function mAssignMeasure(jid){
+  const users=await get('/api/users/list');
+  const opts=users.filter(u=>['installer','factory','owner','admin'].includes(u.role)).map(u=>`<option value="${u.id}" ${_cJob&&_cJob.measure_tech_id==u.id?'selected':''}>${u.name} (${u.role})</option>`).join('');
+  openModal(`<div class="md msm"><div class="mh"><h3>Assign Measure</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb"><div class="fg"><label>Technician</label><select id="amt"><option value="">— Unassigned —</option>${opts}</select></div><div class="fg"><label>Measure Date</label><input type="date" id="amd" value="${_cJob&&_cJob.measure_date?_cJob.measure_date:''}"/></div></div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="saveAssignMeasure(${jid})">Save</button></div></div>`);
+}
+async function saveAssignMeasure(jid){
+  await patch('/api/jobs/'+jid+'/measure-assign',{measure_tech_id:$('amt').value||null,measure_date:$('amd').value||null});
+  closeModal();toast('Measure assignment saved');rJobDetail(jid);
 }
 
 // ── DASHBOARD ──
@@ -642,14 +741,23 @@ async function rJobDetail(id){
   let ri=0;if(needFabs)_fabs=rest[ri++];if(needProfs)_profs=rest[ri++];
   $('ptitle').textContent=_cJob.job_number;
   const ce=can('owner','admin','sales','warehouse'),cc=can('owner','admin','warehouse','factory');
-  $('tactions').innerHTML=`${_cJob.quote_id?`<button class="btn bsec bsm" onclick="nav('quote-edit',${_cJob.quote_id})">View Quote</button>`:''}${ce?`<select class="btn bsec bsm" style="font-weight:600" onchange="updJS(${id},this.value)">${['new','measured','in_production','ready','installed'].map(s=>`<option value="${s}" ${_cJob.status===s?'selected':''}>${{new:'New',measured:'Measured',in_production:'In Production',ready:'Ready',installed:'Installed'}[s]}</option>`).join('')}</select>`:''}${cc?`<button class="btn bsec bsm" onclick="printS(${id},'fabric')">Fabric Sheet</button><button class="btn bsec bsm" onclick="printS(${id},'hardware')">Hardware Sheet</button><button class="btn bsec bsm" onclick="printAssembly(${id})">Assembly Sheet</button>`:''}${ce?`<button class="btn bp bsm" onclick="mAddWin(${id})">Add Window</button>`:''}`;
+  $('tactions').innerHTML=`${_cJob.quote_id?`<button class="btn bsec bsm" onclick="nav('quote-edit',${_cJob.quote_id})">View Quote</button>`:''}${can('owner','admin','sales')?`<button class="btn bsec bsm" onclick="jobInvoice(${id})">Invoice</button>`:''}${_cJob.measure_tech_name?`<span class="badge bbl">Measure: ${_cJob.measure_tech_name}${_cJob.measure_date?' · '+fd(_cJob.measure_date):''}</span>`:''}${can('owner','admin','sales')?`<button class="btn bsec bsm" onclick="mAssignMeasure(${id})">Assign Measure</button>`:''}${can('owner','admin','installer','factory')?`<button class="btn bsec bsm" onclick="mMeasure(${id})">Measurements</button>`:''}${ce?`<select class="btn bsec bsm" style="font-weight:600" onchange="updJS(${id},this.value)">${['new','measured','in_production','ready','installed'].map(s=>`<option value="${s}" ${_cJob.status===s?'selected':''}>${{new:'New',measured:'Measured',in_production:'In Production',ready:'Ready',installed:'Installed'}[s]}</option>`).join('')}</select>`:''}${cc?`<button class="btn bsec bsm" onclick="printS(${id},'fabric')">Fabric Sheet</button><button class="btn bsec bsm" onclick="printS(${id},'hardware')">Hardware Sheet</button><button class="btn bsec bsm" onclick="printAssembly(${id})">Assembly Sheet</button>`:''}${ce?`<button class="btn bp bsm" onclick="mAddWin(${id})">Add Window</button>`:''}`;
   const j=_cJob;
   $('content').innerHTML=`<div class="card"><div style="padding:14px 18px"><div class="ig"><div><div class="ibl">Client</div><div class="ibv">${j.client_name||'—'}</div><div class="ibsb">${j.client_address||''}</div></div><div><div class="ibl">Contact</div><div class="ibv">${j.contact||'—'}</div><div class="ibsb">${j.phone||''}</div></div><div><div class="ibl">Rep / Date In</div><div class="ibv">${j.rep||'—'}</div><div class="ibsb">${fd(j.date_in)}</div></div><div><div class="ibl">Due / Status</div><div class="ibv">${fd(j.date_due)}</div><div style="margin-top:5px">${sb(j.status)}</div></div></div></div></div>
-  <div class="card"><div class="ch"><h2>Windows (${j.windows.length})</h2>${ce?`<button class="btn bp bsm" onclick="mAddWin(${id})">Add Window</button>`:''}</div><div class="tw"><table><thead><tr><th>#</th><th>Location</th><th>Fabric</th><th>Profile</th><th>Width</th><th>Length</th><th>Mount</th><th>Control</th>${cc?`<th>Cassette Cut</th><th>Bottom Rail</th><th>Fabric Width</th><th>Fabric Drop</th>`:''}<th>Production</th><th>Cord</th><th>Brackets</th><th></th></tr></thead><tbody id="wt"></tbody></table></div></div>`;
+  <div class="card"><div class="ch"><h2>Windows (${j.windows.length})</h2>${ce?`<button class="btn bp bsm" onclick="mAddWin(${id})">Add Window</button>`:''}</div><div class="tw"><table><thead><tr><th>#</th><th>Location</th><th>Fabric</th><th>Profile</th><th>Width</th><th>Length</th><th>Mount</th><th>Control</th>${cc?`<th>Cassette Cut</th><th>Bottom Rail</th><th>Fabric Width</th><th>Fabric Drop</th>`:''}<th>Production</th><th>Cord</th><th>Brackets</th><th></th></tr></thead><tbody id="wt"></tbody></table></div></div>
+  <div class="card"><div class="ch"><h2>Scheduled</h2>${can('owner','admin')?`<button class="btn bp bsm" onclick="mNewEvent(${id})">Schedule</button>`:''}</div><div class="tw"><table><thead><tr><th>Date</th><th>Event</th><th>Type</th><th>Assigned</th><th></th></tr></thead><tbody id="jevt"><tr><td colspan="5" class="muted" style="text-align:center;padding:10px">Loading…</td></tr></tbody></table></div></div>`;
   renderWT(j.windows,cc,ce);
+  loadJobEvents(id);
 }
+async function loadJobEvents(id){
+  const evs=await get('/api/calendar?job='+id);
+  const tb=document.getElementById('jevt');if(!tb)return;
+  const tmap={install:['bgr','Install'],delivery:['bam','Delivery'],measure:['bbl','Measure'],meeting:['bpu','Meeting'],other:['bgy','Other']};
+  tb.innerHTML=evs.length?evs.map(e=>{const[c,l]=tmap[e.event_type]||['bgy',e.event_type];return`<tr><td class="muted">${fd(e.start_date)}</td><td>${e.title}</td><td><span class="badge ${c}">${l}</span></td><td class="muted">${e.assigned_name||'—'}</td><td>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="dEvJob(${e.id},${id})">×</button>`:''}</td></tr>`;}).join(''):`<tr><td colspan="5" class="muted" style="text-align:center;padding:10px">No events scheduled</td></tr>`;
+}
+async function dEvJob(eid,jid){if(!await confirmDialog('Delete event?'))return;await del('/api/calendar/'+eid);toast('Event deleted');loadJobEvents(jid);}
 function renderWT(wins,cc,ce){
-  $('wt').innerHTML=wins.length?wins.map(w=>`<tr><td class="muted">${w.window_no}</td><td><strong>${w.location||'—'}</strong></td><td><div style="display:flex;align-items:center;gap:7px"><div style="width:13px;height:13px;border-radius:3px;background:${w.colour_hex||'#ccc'};border:1px solid var(--border);flex-shrink:0"></div><div><div style="font-weight:600;font-size:12px">${w.fabric_alias||'—'}</div><span class="mono" style="font-size:10px">${w.catalogue_no||''}</span></div></div></td><td><span class="badge bpu">Profile ${w.profile_code||'—'}</span></td><td class="mono">${ms(w.width_in,w.width_frac)}</td><td class="mono">${ms(w.length_in,w.length_frac)}</td><td>${w.mount_type==='in'||w.mount_type==='I'?'<span class="badge btl">Inside</span>':'<span class="badge bam">Outside</span>'}</td><td class="muted">${w.control_type||'—'} ${w.lr_side||''}</td>${cc?`<td class="mono"><strong>${toFrac(w.cut_cassette)}</strong></td><td class="mono"><strong>${toFrac(w.cut_bottom_rail)}</strong></td><td class="mono" style="color:var(--green-text)"><strong>${toFrac(w.cut_fabric_width)}</strong></td><td class="mono" style="color:var(--green-text)"><strong>${toFrac(w.cut_fabric_drop)}</strong></td>`:''}<td>${prodBadge(w.production_status||'pending')}</td><td class="muted">${w.cord_wand_size||'—'}</td><td class="muted">${w.bracket_count||0}×</td><td>${ce?`<button class="btn bg bxs" style="color:var(--red)" onclick="dWin(${w.id})">Remove</button>`:''}</td></tr>`).join(''):emp('No windows added','Click "Add Window" to begin measuring');
+  $('wt').innerHTML=wins.length?wins.map(w=>`<tr><td class="muted">${w.window_no}</td><td><strong>${w.location||'—'}</strong></td><td><div style="display:flex;align-items:center;gap:7px"><div style="width:13px;height:13px;border-radius:3px;background:${w.colour_hex||'#ccc'};border:1px solid var(--border);flex-shrink:0"></div><div><div style="font-weight:600;font-size:12px">${w.fabric_alias||'—'}</div><span class="mono" style="font-size:10px">${w.catalogue_no||''}</span></div></div></td><td><span class="badge bpu">Profile ${w.profile_code||'—'}</span></td><td class="mono">${msShow(w,'w')}</td><td class="mono">${msShow(w,'l')}</td><td>${w.mount_type==='in'||w.mount_type==='I'?'<span class="badge btl">Inside</span>':'<span class="badge bam">Outside</span>'}</td><td class="muted">${w.control_type||'—'} ${w.lr_side||''}</td>${cc?`<td class="mono"><strong>${toFrac(w.cut_cassette)}</strong></td><td class="mono"><strong>${toFrac(w.cut_bottom_rail)}</strong></td><td class="mono" style="color:var(--green-text)"><strong>${toFrac(w.cut_fabric_width)}</strong></td><td class="mono" style="color:var(--green-text)"><strong>${toFrac(w.cut_fabric_drop)}</strong></td>`:''}<td>${prodBadge(w.production_status||'pending')}</td><td class="muted">${w.cord_wand_size||'—'}</td><td class="muted">${w.bracket_count||0}×</td><td>${ce?`<button class="btn bg bxs" style="color:var(--red)" onclick="dWin(${w.id})">Remove</button>`:''}</td></tr>`).join(''):emp('No windows added','Click "Add Window" to begin measuring');
 }
 async function updJS(id,s){await patch('/api/jobs/'+id,{status:s});toast('Status updated');}
 async function dWin(id){if(!await confirmDialog('Remove window?'))return;await del('/api/windows/'+id);toast('Window removed');rJobDetail(_cJob.id);}
@@ -1523,9 +1631,24 @@ function _hwRows(list){return list.length?list.map(_hwRow).join(''):emp('No hard
 function filterHw(q){q=(q||'').trim().toLowerCase();const list=!q?_hw:_hw.filter(h=>[h.category,h.item_code,h.description,h.unit].some(v=>(v==null?'':''+v).toLowerCase().includes(q)));const tb=document.getElementById('hwTbody');if(tb)tb.innerHTML=_hwRows(list);const c=document.getElementById('hwCount');if(c)c.textContent=list.length;}
 async function rHardware(){
   _hw=await get('/api/hardware');
-  $('tactions').innerHTML=`<button class="btn bp bsm" onclick="mAddHw()">Add Item</button>`;
+  const bs=await get('/api/barstock');
+  $('tactions').innerHTML=`${can('owner','admin','warehouse')?`<button class="btn bsec bsm" onclick="mBarStock()">Bar Stock</button>`:''}<button class="btn bp bsm" onclick="mAddHw()">Add Item</button>`;
   const sugg=[...new Set(_hw.flatMap(h=>[h.item_code,h.description,h.category].filter(Boolean)))].sort().map(v=>`<option value="${v}"></option>`).join('');
-  $('content').innerHTML=`<div class="card"><div class="ch"><h2>Hardware Inventory (<span id="hwCount">${_hw.length}</span>)</h2><input type="search" class="srch" list="hwSugg" placeholder="Search code, category, description…" oninput="filterHw(this.value)" autocomplete="off"/><datalist id="hwSugg">${sugg}</datalist></div><div class="tw"><table><thead><tr><th>Category</th><th>Code</th><th>Description</th><th>Unit</th><th>Total</th><th>Used</th><th>Remaining</th><th>Status</th><th>Usage</th><th></th></tr></thead><tbody id="hwTbody">${_hwRows(_hw)}</tbody></table></div></div>`;
+  const usedPct=bs.total_length_in>0?Math.min(100,(bs.used_length_in/bs.total_length_in)*100):0;
+  const barCard=`<div class="card"><div class="ch"><h2>Hardware Bar Stock</h2><span class="muted" style="font-size:12px">${fn(bs.bar_length_in,0)}" bars · deducted on job creation (cut + 4" waste per piece)</span></div><div style="padding:16px 20px"><div class="ig" style="grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px"><div><div class="ibl">Bars on hand</div><div style="font-size:24px;font-weight:800;color:var(--brand)">${fn(bs.total_bars,0)}</div></div><div><div class="ibl">Used</div><div class="ibv">${fn(bs.used_length_in,1)}"</div></div><div><div class="ibl">Remaining</div><div class="ibv">${fn(bs.available_length_in,1)}"</div></div><div><div class="ibl">Bars left</div><div class="ibv" style="color:${bs.bars_remaining<5?'var(--red)':'var(--green-text)'}">${fn(bs.bars_remaining,1)}</div></div></div><div class="stb"><div class="stbf" style="width:${usedPct}%;background:${usedPct>90?'var(--red)':usedPct>70?'var(--amber)':'var(--green)'}"></div></div><div style="font-size:11px;color:var(--text3);margin-top:4px">${Math.round(usedPct)}% used</div></div></div>`;
+  $('content').innerHTML=barCard+`<div class="card"><div class="ch"><h2>Hardware Inventory (<span id="hwCount">${_hw.length}</span>)</h2><input type="search" class="srch" list="hwSugg" placeholder="Search code, category, description…" oninput="filterHw(this.value)" autocomplete="off"/><datalist id="hwSugg">${sugg}</datalist></div><div class="tw"><table><thead><tr><th>Category</th><th>Code</th><th>Description</th><th>Unit</th><th>Total</th><th>Used</th><th>Remaining</th><th>Status</th><th>Usage</th><th></th></tr></thead><tbody id="hwTbody">${_hwRows(_hw)}</tbody></table></div></div>`;
+}
+async function mBarStock(){
+  const bs=await get('/api/barstock');
+  openModal(`<div class="md msm"><div class="mh"><h3>Hardware Bar Stock</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+    <div class="fg"><label>Bars on hand (×${fn(bs.bar_length_in,0)}")</label><input class="nospin" type="number" id="bsbars" value="${bs.total_bars||0}"/></div>
+    <div class="fg"><label>Used length so far (inches)</label><input class="nospin" type="number" step="0.1" id="bsused" value="${bs.used_length_in||0}"/><div style="font-size:10px;color:var(--text3);margin-top:2px">Auto-increases as jobs are created — adjust only to correct.</div></div>
+    <div class="fg"><label>Bar length (inches)</label><input class="nospin" type="number" id="bslen" value="${bs.bar_length_in||225}"/></div>
+  </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="saveBarStock()">Save</button></div></div>`);
+}
+async function saveBarStock(){
+  await patch('/api/barstock',{total_bars:parseFloat($('bsbars').value)||0,used_length_in:parseFloat($('bsused').value)||0,bar_length_in:parseFloat($('bslen').value)||225});
+  closeModal();toast('Bar stock updated');rHardware();
 }
 function mAddHw(){
   openModal(`<div class="md mmd"><div class="mh"><h3>Add Hardware Item</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
@@ -1663,7 +1786,7 @@ async function loadCal(){
   const first=new Date(calY,calM-1,1).getDay(),days=new Date(calY,calM,0).getDate();
   const today=new Date(),em={};
   events.forEach(e=>{const d=(e.start_date||'').split('T')[0];if(!em[d])em[d]=[];em[d].push(e);});
-  const ec={install:'ei',measure:'em2',meeting:'eme',other:'eot'};
+  const ec={install:'ei',delivery:'ei',measure:'em2',meeting:'eme',other:'eot'};
   let cells='';
   for(let i=0;i<first;i++)cells+=`<div class="cd com"></div>`;
   for(let d=1;d<=days;d++){
@@ -1672,19 +1795,19 @@ async function loadCal(){
     const de=em[ds]||[];
     cells+=`<div class="cd ${isTd?'ct':''}"><div class="cdn">${d}</div>${de.slice(0,3).map(e=>`<div class="cev ${ec[e.event_type]||'eot'}" title="${e.title}${e.assigned_name?' — '+e.assigned_name:''}">${e.title}</div>`).join('')}${de.length>3?`<div style="font-size:10px;color:var(--text3)">+${de.length-3} more</div>`:''}</div>`;
   }
-  $('content').innerHTML=`<div class="cg" style="margin-bottom:2px">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cdh">${d}</div>`).join('')}</div><div class="cg">${cells}</div>${events.length?`<div class="card" style="margin-top:16px"><div class="ch"><h2>Events This Month</h2></div><div class="tw"><table><thead><tr><th>Date</th><th>Event</th><th>Type</th><th>Assigned</th><th>Job</th><th></th></tr></thead><tbody>${events.map(e=>`<tr><td class="muted">${fd(e.start_date)}</td><td><strong>${e.title}</strong>${e.notes?`<br><span style="font-size:11px;color:var(--text3)">${e.notes}</span>`:''}</td><td><span class="badge ${e.event_type==='install'?'bgr':e.event_type==='measure'?'bbl':e.event_type==='meeting'?'bpu':'bgy'}">${{install:'Install',measure:'Measure',meeting:'Meeting',other:'Other'}[e.event_type]||e.event_type}</span></td><td class="muted">${e.assigned_name||'—'}</td><td>${e.job_number?`<span class="badge bbl">${e.job_number}</span>`:'—'}</td><td>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="dEv(${e.id})">Delete</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`:''}`;
+  $('content').innerHTML=`<div class="cg" style="margin-bottom:2px">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cdh">${d}</div>`).join('')}</div><div class="cg">${cells}</div>${events.length?`<div class="card" style="margin-top:16px"><div class="ch"><h2>Events This Month</h2></div><div class="tw"><table><thead><tr><th>Date</th><th>Event</th><th>Type</th><th>Assigned</th><th>Job</th><th></th></tr></thead><tbody>${events.map(e=>`<tr><td class="muted">${fd(e.start_date)}</td><td><strong>${e.title}</strong>${e.notes?`<br><span style="font-size:11px;color:var(--text3)">${e.notes}</span>`:''}</td><td><span class="badge ${e.event_type==='install'?'bgr':e.event_type==='delivery'?'bam':e.event_type==='measure'?'bbl':e.event_type==='meeting'?'bpu':'bgy'}">${{install:'Install',delivery:'Delivery',measure:'Measure',meeting:'Meeting',other:'Other'}[e.event_type]||e.event_type}</span></td><td class="muted">${e.assigned_name||'—'}</td><td>${e.job_number?`<a class="badge bbl" style="cursor:pointer" onclick="nav('job-detail',${e.job_id})">${e.job_number}</a>`:'—'}</td><td>${can('owner','admin')?`<button class="btn bg bxs" style="color:var(--red)" onclick="dEv(${e.id})">Delete</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`:''}`;
 }
 function calNav(d){calM+=d;if(calM>12){calM=1;calY++;}else if(calM<1){calM=12;calY--;}loadCal();}
 async function dEv(id){if(!await confirmDialog('Delete event?'))return;await del('/api/calendar/'+id);toast('Deleted');loadCal();}
-async function mNewEvent(){
+async function mNewEvent(preJob){
   if(!_users.length&&can('owner','admin'))_users=await get('/api/users');
   const jobs=await get('/api/jobs');
-  openModal(`<div class="md mmd"><div class="mh"><h3>Add Event</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
+  openModal(`<div class="md mmd"><div class="mh"><h3>Schedule Event</h3><button class="mx" onclick="closeModal()">✕</button></div><div class="mb">
     <div class="fg"><label>Title *</label><input id="evt" placeholder="e.g. Install at 123 Main St"/></div>
-    <div class="fr2"><div class="fg"><label>Event Type</label><select id="evtp"><option value="install">Install</option><option value="measure">Measure</option><option value="meeting">Meeting</option><option value="other">Other</option></select></div><div class="fg"><label>Date *</label><input type="date" id="evd" value="${new Date().toISOString().split('T')[0]}"/></div><div class="fg"><label>Assign To</label><select id="evto"><option value="">— No one —</option>${_users.filter(u=>u.active).map(u=>`<option value="${u.id}">${u.role} — ${u.name}</option>`).join('')}</select></div><div class="fg"><label>Linked Job</label><select id="evj"><option value="">— None —</option>${jobs.slice(0,30).map(j=>`<option value="${j.id}">${j.job_number} — ${j.client_name||''}</option>`).join('')}</select></div></div>
+    <div class="fr2"><div class="fg"><label>Event Type</label><select id="evtp"><option value="install">Install</option><option value="delivery">Delivery</option><option value="measure">Measure</option><option value="meeting">Meeting</option><option value="other">Other</option></select></div><div class="fg"><label>Date *</label><input type="date" id="evd" value="${new Date().toISOString().split('T')[0]}"/></div><div class="fg"><label>Assign To</label><select id="evto"><option value="">— No one —</option>${_users.filter(u=>u.active).map(u=>`<option value="${u.id}">${u.role} — ${u.name}</option>`).join('')}</select></div><div class="fg"><label>Linked Job</label><select id="evj"><option value="">— None —</option>${jobs.map(j=>`<option value="${j.id}" ${preJob&&j.id==preJob?'selected':''}>${j.job_number} — ${j.client_name||''}</option>`).join('')}</select></div></div>
     <div class="fg"><label>Notes</label><textarea id="evno" placeholder="Optional notes"></textarea></div>
   </div><div class="mf"><button class="btn bsec" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="svEv()">Add Event</button></div></div>`);
-  window.svEv=async()=>{const t=$('evt').value.trim();if(!t){toast('Title required','err');return;}await post('/api/calendar',{title:t,event_type:$('evtp').value,start_date:$('evd').value,assigned_to:$('evto').value||null,job_id:$('evj').value||null,notes:$('evno').value});closeModal();toast('Event added');loadCal();};
+  window.svEv=async()=>{const t=$('evt').value.trim();if(!t){toast('Title required','err');return;}await post('/api/calendar',{title:t,event_type:$('evtp').value,start_date:$('evd').value,assigned_to:$('evto').value||null,job_id:$('evj').value||null,notes:$('evno').value});closeModal();toast('Event scheduled');if(preJob)loadJobEvents(preJob);else loadCal();};
 }
 
 // ── USERS ──
